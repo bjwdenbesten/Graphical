@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+
+body {
+    background-color: white;
+}
+
+@layer base {
+    button {
+        @apply cursor-pointer
+    }
+
+    h1 {
+        @apply font-serif 
+    }
+
+    .btn-nav {
+        @apply bg-black text-white p-2 rounded mr-2
+    }
+}
