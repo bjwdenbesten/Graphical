@@ -66,11 +66,15 @@ const Graph = () => {
   //deletes a component
   const deleteComponent = useCallback(() => {
     const nodeHovered = nodeRef.current;
-    console.log("deleting component");
     if (nodeHovered !== null) {
-      console.log("deleting node");
-      setNodes((prev) => 
-        prev.filter ((node) => node.id !== nodeHovered)
+      setNodes((prev) => {
+        const filtered = prev.filter((node)=>node.id !== nodeHovered);
+        const relabeled = filtered.map((node, index) => ({
+          ...node,
+          label: index + 1,
+        }));
+        return relabeled;
+      }
       );
     }
   }, [nodeHovered, setNodes]);

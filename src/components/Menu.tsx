@@ -10,7 +10,7 @@ const Menu = () => {
         <button className="transition bg-black text-white p-2 rounded mr-2 hover:bg-gray-400 ease-in">Login / Join</button>
     </div>
     <div className ="flex h-full flex-col items-center justify-center space-y-4">
-        <h1 className = "text-4xl font-bold">Graphical.io</h1>
+        <h1 className = "text-4xl font-bold">Graphical</h1>
         <button onClick={() => navigate('/workspace')}className="transition hover:-translate-y-1 ease-in duration-250 hover:text-gray-400">Create Workspace</button>
         <button onClick={() => navigate('/joinparty')}className="transition hover:-translate-y-1 ease-in duration-250 hover:text-gray-400">Join a Party</button>
     </div>
