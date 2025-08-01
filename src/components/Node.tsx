@@ -10,16 +10,42 @@ interface NodeProps {
   showLabel: boolean;
   showID: boolean;
   setNodeHovered: React.Dispatch<React.SetStateAction<number | null>>;
+  setDragOffset: React.Dispatch<React.SetStateAction<{x: number, y: number}>>;
 }
 
-const Node = ({ id, label, posx, posy, size, onMouseDown, showLabel, showID, setNodeHovered }: NodeProps) => {
+const Node = ({
+  id,
+  label,
+  posx,
+  posy,
+  size,
+  onMouseDown,
+  showLabel,
+  showID,
+  setNodeHovered,
+  setDragOffset,
+}: NodeProps) => {
   return (
     <>
       <div
-        className="select-none cursor-pointer absolute border-4 text-black rounded-full shadow-md flex items-center justify-center flex-col"
-        onMouseDown={onMouseDown}
-        onMouseEnter={()=>{setNodeHovered(id)}}
-        onMouseLeave={()=>{setNodeHovered(null)}}
+        className="select-none cursor-pointer bg-white absolute border-4 text-black rounded-full shadow-md flex items-center justify-center flex-col"
+        onMouseDown={(e) => {
+          if (e.button === 0 && onMouseDown) {
+            setDragOffset({x: e.clientX - posx, y: e.clientY - posy});
+            onMouseDown();
+          }
+          if (e.button === 2) {
+          }
+        }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+        }}
+        onMouseEnter={() => {
+          setNodeHovered(id);
+        }}
+        onMouseLeave={() => {
+          setNodeHovered(null);
+        }}
         style={{
           left: posx - size / 2,
           top: posy - size / 2,

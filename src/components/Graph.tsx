@@ -1,15 +1,24 @@
 import GraphMenu from "./GraphMenu";
 import Node from "./Node";
+import Edge from "./Edge";
 import { useState, useEffect, useCallback, useRef } from "react";
 
 let node_id = 0;
+let edge_id = 0;
 
-interface NodeData {
+export interface NodeData {
   id: number;
   label: number;
   x: number;
   y: number;
   size: number;
+}
+
+interface EdgeData {
+  id: number;
+  weight: number;
+  startID: number;
+  endID: number;
 }
 
 const Graph = () => {
@@ -19,13 +28,21 @@ const Graph = () => {
   });
 
   const [overWorkspace, setoverWorkspace] = useState(false);
+
   const [nodes, setNodes] = useState<NodeData[]>([]);
   const [mousePosition, setMousePosition] = useState({ x: 20, y: 20 });
   const [nodeSize, setNodeSize] = useState(60);
   const [dragNodeID, setdragNodeID] = useState<number | null> (null);
+  const [dragOffset, setDragOffset] = useState<{x: number, y: number}> ({x: 0, y: 0});
   const[showNodeLabels, setShoeNodeLabels] = useState(true);
   const [showNodeIDS, setShowNodeIDS] = useState(false);
   const [nodeHovered, setNodeHovered] = useState<number | null> (null);
+
+  //edge states
+  const [edges, setEdges] = useState<EdgeData[]>([]);
+  const [startNode, setStartNode] = useState<NodeData | null> (null);
+  const [endNode, setEndNode] = useState<NodeData | null> (null);
+
 
 
   const mouseRef = useRef(mousePosition);
@@ -45,6 +62,59 @@ const Graph = () => {
     nodeRef.current = nodeHovered;
   }, [nodeHovered]);
 
+  useEffect(() => {
+    if (startNode && endNode) {
+      createEdge();
+      console.log("startingNodeID: " + startNode.id);
+      console.log("endingNodeID: " + endNode.id);
+      setStartNode(null);
+      setEndNode(null);
+      console.log("Created Edge");
+    }
+  }, [startNode, endNode, setEdges]);
+
+
+  const createEdge = useCallback(() => {
+    if (!startNode || !endNode) return;
+    setEdges((prev) => [
+      ...prev,
+      {
+        id: edge_id,
+        weight: 0,
+        startID: startNode.id,
+        endID: endNode.id,
+      },
+    ]);
+    edge_id++;
+  }, [startNode, endNode]);
+
+  useEffect(() => {
+    const selectFirstNode = (e: MouseEvent) => {
+      if (nodeHovered == null || e.button !== 2) return;
+      nodes.map((node) => {
+        node.id === nodeHovered ? setStartNode(node) : null
+      })
+      console.log("Set Start Node");
+    }
+
+    const selectSecondNode = (e: MouseEvent) => {
+      if (nodeHovered == null || startNode === null || e.button !== 2) {
+        setStartNode(null);
+        return;
+      }
+      if (nodeHovered === startNode.id) return;
+      nodes.map((node) => {
+        node.id === nodeHovered ? setEndNode(node) : null
+      })
+      console.log("Set End Node");
+    }
+
+    window.addEventListener("mousedown", selectFirstNode);
+    window.addEventListener("mouseup", selectSecondNode);
+    return() => {window.removeEventListener("mousedown", selectFirstNode), window.removeEventListener("mouseup", selectSecondNode)}
+  }, [nodeHovered, nodes, startNode])
+
+
 
   //updates the node list with new node
   const createNode = useCallback(() => {
@@ -61,6 +131,8 @@ const Graph = () => {
     ]);
     node_id++;
   }, [mousePosition, nodes, nodeSize]);
+
+
 
 
   //deletes a component
@@ -82,7 +154,10 @@ const Graph = () => {
   //clears all components from workspace
   const clearComponents = useCallback(() => {
     setNodes([]);
-  }, [setNodes]);
+    setEdges([]);
+    node_id = 0;
+    edge_id = 0;
+  }, [setNodes, setEdges]);
 
 
   //updates the mouse position
@@ -138,11 +213,10 @@ const Graph = () => {
 
       setNodes((prev) => 
         prev.map((node) => 
-          node.id === dragNodeID ? {...node, x: smallX, y: smallY} : node
+          node.id === dragNodeID ? {...node, x: smallX - dragOffset.x, y: smallY - dragOffset.y} : node
         )
       );
     }
-
 
     const handleUp = () => setdragNodeID(null);
 
@@ -150,7 +224,7 @@ const Graph = () => {
     window.addEventListener("mouseup", handleUp);
 
     return () => {window.removeEventListener("mousemove", handleDrag), window.removeEventListener("mouseup", handleUp)}
-  }, [dragNodeID, overWorkspace])
+  }, [dragNodeID, overWorkspace, dragOffset])
 
 
   //component rendering
@@ -163,6 +237,24 @@ const Graph = () => {
           onMouseLeave={() => setoverWorkspace(false)}
           onMouseEnter={() => setoverWorkspace(true)}
         >
+          <svg className="absolute top-1 left-0 w-full h-full pointer-events-none z-0">
+          {edges.map((edge) => {
+            const startingNode = nodes.find((node) => node.id === edge.startID);
+            const endingNode = nodes.find((node) => node.id === edge.endID);
+
+            if (!startingNode || !endingNode) return null;
+            return (
+            <Edge
+              key={edge.id}
+              id={edge.id}
+              weight = {0}
+              start={startingNode}
+              end={endingNode}
+            />
+            )
+            
+          })}
+          </svg>
           {nodes.map((nodes) => (
             <Node
               key={nodes.id}
@@ -175,6 +267,7 @@ const Graph = () => {
               showLabel = {showNodeLabels}
               showID = {showNodeIDS}
               setNodeHovered = {setNodeHovered}
+              setDragOffset = {setDragOffset}
             />
           ))}
         </div>

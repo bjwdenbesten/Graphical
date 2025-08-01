@@ -120,7 +120,7 @@ const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, showNodeLabel
                     <span className="ml-4">Directed</span>
                     <input className="ml-2" type="radio" checked={isDirected} onChange={() => setIsDirected(true)}/>
                 </div>
-                <div className="p-2 flex flex-row">
+                <div className="p-2 flex flex-row items-center">
                   <h2>Graph is:</h2>
                     <span className="ml-4">Unweighted</span>
                     <input className="ml-2" type="radio" checked={!isWeighted} onChange={() => setIsWeighted(false)}/>
