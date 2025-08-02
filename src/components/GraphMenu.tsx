@@ -10,6 +10,8 @@ type GraphMenuProps = {
   setKeyBinds: React.Dispatch<React.SetStateAction<KeyBinds>>;
   nodeSize: number;
   setNodeSize: React.Dispatch<React.SetStateAction<number>>;
+  weightFontSize: number;
+  setWeightFontSize: React.Dispatch<React.SetStateAction<number>>;
   showNodeLabels: boolean;
   setShowNodeLabels: React.Dispatch<React.SetStateAction<boolean>>;
   showNodeIDS: boolean;
@@ -19,10 +21,11 @@ type GraphMenuProps = {
   isDirected: boolean;
   setIsDirected: React.Dispatch<React.SetStateAction<boolean>>;
   clearGraph: () => void;
+  clearWeights: () => void;
 };
 
 
-const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, showNodeLabels, setShowNodeLabels, showNodeIDS, setShowNodesIDS, isWeighted, setIsWeighted, isDirected, setIsDirected, clearGraph}: GraphMenuProps) => {
+const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, weightFontSize, setWeightFontSize, showNodeLabels, setShowNodeLabels, showNodeIDS, setShowNodesIDS, isWeighted, setIsWeighted, isDirected, setIsDirected, clearGraph, clearWeights}: GraphMenuProps) => {
   const [menuState, setMenuState] = useState("options");
   const [changingKey, setChangingKey] = useState<string | null>(null);
   const [visualState, setVisualState] = useState(true);
@@ -52,7 +55,7 @@ const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, showNodeLabel
 
   return (
     <>
-      <div className="bg-gray-300 h-full w-100 flex flex-col z-1">
+      <div className="bg-gray-300 min-h-full w-100 flex flex-col z-1 overflow-y-auto">
         <div className="flex justify-center border-b border-black">
           <button
             onClick={() => setMenuState("options")}
@@ -102,6 +105,16 @@ const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, showNodeLabel
                 <h2>Node IDS are: {showNodeIDS? "Visible" : "Hidden"}</h2>
                 <input type="checkbox" checked={showNodeIDS} onChange={(e) => setShowNodesIDS(e.target.checked)}/>
               </div>
+              <div className="p-2">
+                <h2>Weight Font Size</h2>
+                <div>
+                  <input className="select-none" id = "node-range" type="range" min="10" max="100" value={weightFontSize} onChange={(e) => setWeightFontSize(parseInt(e.target.value))}/>
+                  <div>
+                    <span id="node-value">{weightFontSize}</span>
+                  </div>
+                </div>
+              </div>
+              
             </div>
             <h2 className="p-2 text-lg">
               <button onClick={() => setGraphsAlgosState(!graphsAlgosState)} className="w-full hover:bg-gray-400 border">
@@ -145,6 +158,7 @@ const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, showNodeLabel
                 </div>
               </div>
             </div>
+
             <h2 className="p-2 text-lg">
               <button onClick={() => setMiscState(!miscState)} className="w-full hover:bg-gray-400 border">
                 <span className="select-none">
@@ -155,8 +169,12 @@ const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, showNodeLabel
 
             <div className={miscState ? "block" : "hidden"}>
               <div className="flex justify-center">
-              <button className="bg-gray-400 p-1 rounded border-2" onClick={clearGraph}>Clear Graph</button>
-            </div>
+                <button className="bg-gray-400 p-1 rounded border-2" onClick={clearWeights}>Clear Weights</button>
+              </div>
+              <div className="flex justify-center mt-4">
+                <button className="bg-gray-400 p-1 rounded border-2" onClick={clearGraph}>Clear Graph</button>
+              </div>
+
             </div>
           </div>
           

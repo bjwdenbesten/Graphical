@@ -21,6 +21,33 @@ interface EdgeData {
   endID: number;
 }
 
+type groupedEdge = {
+  edge: EdgeData;
+  index: number;
+  total: number;
+}
+
+const groupEdges = (edges: EdgeData[]) : groupedEdge[] => {
+  const map = new Map<string, EdgeData[]>();
+
+  for (const edge of edges) {
+    const minID = Math.min(edge.startID, edge.endID);
+    const maxID = Math.max(edge.startID, edge.endID);
+    const key = `${minID}-${maxID}`;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(edge);
+  }
+
+  const res: groupedEdge[] = [];
+  for (const group of map.values()) {
+    group.forEach((edge, i) => {
+      res.push({edge, index: i, total: group.length});
+    })
+  }
+  return res;
+}
+
+
 const Graph = () => {
   const [keyBinds, setKeyBinds] = useState({
     Create_Node: "n",
@@ -40,18 +67,30 @@ const Graph = () => {
 
   //edge states
   const [edges, setEdges] = useState<EdgeData[]>([]);
+  const [groupedEdges, setGroupedEdges] = useState<groupedEdge[]>([]);
   const [startNode, setStartNode] = useState<NodeData | null> (null);
   const [endNode, setEndNode] = useState<NodeData | null> (null);
+  const [edgeHovered, setEdgeHovered] = useState<number | null> (null);
+
+  //weight states
+  const [weightSize, setWeightSize] = useState<number> (25);
 
 
 
   const mouseRef = useRef(mousePosition);
   const workspaceRef = useRef<HTMLDivElement>(null);
   const nodeRef = useRef(nodeHovered);
+  const edgeRef = useRef(edgeHovered);
 
   //graph states
   const [isWeighted, setIsWeighted] = useState(false);
   const [isDirected, setIsDirected] = useState(false);
+
+  const changeWeight = (id: number, newWeight: number) => {
+    setEdges(prev =>
+      prev.map(edge => edge.id === id ? {...edge, weight: newWeight} : edge)
+    );
+  }
 
   //make sure it stays updated
   useEffect(() => {
@@ -63,6 +102,10 @@ const Graph = () => {
   }, [nodeHovered]);
 
   useEffect(() => {
+    edgeRef.current = edgeHovered;
+  }, [edgeHovered])
+
+  useEffect(() => {
     if (startNode && endNode) {
       createEdge();
       console.log("startingNodeID: " + startNode.id);
@@ -72,6 +115,10 @@ const Graph = () => {
       console.log("Created Edge");
     }
   }, [startNode, endNode, setEdges]);
+
+  useEffect(() => {
+    setGroupedEdges(groupEdges(edges));
+  }, [edges]);
 
 
   const createEdge = useCallback(() => {
@@ -138,6 +185,8 @@ const Graph = () => {
   //deletes a component
   const deleteComponent = useCallback(() => {
     const nodeHovered = nodeRef.current;
+    const edgeHovered = edgeRef.current;
+    console.log("Deleting component!");
     if (nodeHovered !== null) {
       setNodes((prev) => {
         const filtered = prev.filter((node)=>node.id !== nodeHovered);
@@ -148,8 +197,22 @@ const Graph = () => {
         return relabeled;
       }
       );
+      setEdges((prev) => {
+        const filtered = prev.filter((edge) => edge.startID !== nodeHovered && edge.endID !== nodeHovered);
+        return filtered;
+      })
+
+      setEdgeHovered(null);
     }
-  }, [nodeHovered, setNodes]);
+    if (edgeHovered !== null) {
+      console.log("Deleting edge");
+      setEdges((prev) => {
+        const filter = prev.filter((edge) => edge.id !== edgeHovered);
+        return filter;
+      })
+      setEdgeHovered(null);
+    }
+  }, [nodeHovered, setNodes, edgeHovered, setEdges]);
 
   //clears all components from workspace
   const clearComponents = useCallback(() => {
@@ -158,6 +221,15 @@ const Graph = () => {
     node_id = 0;
     edge_id = 0;
   }, [setNodes, setEdges]);
+
+  const clearWeights = useCallback(() => {
+    setEdges((edge) => 
+      edge.map((edge) => ({
+        ...edge,
+        weight: 0,
+      }))
+    )
+  }, [edges, setEdges])
 
 
   //updates the mouse position
@@ -230,15 +302,16 @@ const Graph = () => {
   //component rendering
   return (
     <>
-      <div className="h-screen flex justify-end overflow-hidden">
+      <div className="h-screen flex justify-end">
         <div
           ref={workspaceRef}
-          className="w-full h-full relative"
+          className="w-full h-full relative overflow-hidden"
           onMouseLeave={() => setoverWorkspace(false)}
           onMouseEnter={() => setoverWorkspace(true)}
         >
           <svg className="absolute top-1 left-0 w-full h-full pointer-events-none z-0">
-          {edges.map((edge) => {
+          {groupedEdges.map((grouped) => {
+            const {edge, index, total} = grouped;
             const startingNode = nodes.find((node) => node.id === edge.startID);
             const endingNode = nodes.find((node) => node.id === edge.endID);
 
@@ -247,9 +320,17 @@ const Graph = () => {
             <Edge
               key={edge.id}
               id={edge.id}
-              weight = {0}
+              weight = {edge.weight}
+              weightSize={weightSize}
               start={startingNode}
               end={endingNode}
+              edgeIndex={index}
+              edgeGroupNumber={total}
+              setEdgeHovered={setEdgeHovered}
+              isDirected={isDirected}
+              isWeighted={isWeighted}
+              nodeRadius={nodeSize}
+              changeWeight={changeWeight}
             />
             )
             
@@ -270,12 +351,14 @@ const Graph = () => {
               setDragOffset = {setDragOffset}
             />
           ))}
-        </div>
+        </div >
           <GraphMenu 
             keyBinds={keyBinds} 
             setKeyBinds={setKeyBinds} 
             nodeSize={nodeSize}
             setNodeSize={setNodeSize}
+            weightFontSize={weightSize}
+            setWeightFontSize={setWeightSize}
             showNodeLabels={showNodeLabels}
             setShowNodeLabels={setShoeNodeLabels}
             showNodeIDS={showNodeIDS}
@@ -285,6 +368,7 @@ const Graph = () => {
             isDirected={isDirected}
             setIsDirected={setIsDirected}
             clearGraph={clearComponents}
+            clearWeights={clearWeights}
           />
       </div>
     </>
