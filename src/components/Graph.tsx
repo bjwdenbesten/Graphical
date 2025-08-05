@@ -2,30 +2,13 @@ import GraphMenu from "./GraphMenu";
 import Node from "./Node";
 import Edge from "./Edge";
 import { useState, useEffect, useCallback, useRef } from "react";
+import type {NodeData, EdgeData, groupedEdge, Pair} from "../types.ts";
+
+import { DFS_main } from "../algorithms/DFS";
+
 
 let node_id = 0;
 let edge_id = 0;
-
-export interface NodeData {
-  id: number;
-  label: number;
-  x: number;
-  y: number;
-  size: number;
-}
-
-interface EdgeData {
-  id: number;
-  weight: number;
-  startID: number;
-  endID: number;
-}
-
-type groupedEdge = {
-  edge: EdgeData;
-  index: number;
-  total: number;
-}
 
 const groupEdges = (edges: EdgeData[]) : groupedEdge[] => {
   const map = new Map<string, EdgeData[]>();
@@ -75,6 +58,9 @@ const Graph = () => {
   //weight states
   const [weightSize, setWeightSize] = useState<number> (25);
 
+  //menu
+  const [outputString, setOutputString] = useState<string> ("");
+
 
 
   const mouseRef = useRef(mousePosition);
@@ -85,6 +71,26 @@ const Graph = () => {
   //graph states
   const [isWeighted, setIsWeighted] = useState(false);
   const [isDirected, setIsDirected] = useState(false);
+
+  //algorithm handling
+  const DFS = (startingNode: number) => {
+    const path = DFS_main(nodes, edges, isDirected, startingNode);
+    setOutputString(convert_output("DFS", path));
+  }
+
+  const convert_output = (type: string, pairs: Pair[]) => {
+    let ret_string = type + " Path:\nTotal Steps: ";
+    ret_string += pairs.length + "\n";
+    for (let i = 0; i < pairs.length; i++) {
+      ret_string += "Node " + pairs[i][0] + " to Node " + pairs[i][1];
+      if (i != pairs.length - 1) {
+        ret_string += '\n';
+      }
+    }
+    return ret_string;
+  }
+
+
 
   const changeWeight = (id: number, newWeight: number) => {
     setEdges(prev =>
@@ -159,7 +165,7 @@ const Graph = () => {
     window.addEventListener("mousedown", selectFirstNode);
     window.addEventListener("mouseup", selectSecondNode);
     return() => {window.removeEventListener("mousedown", selectFirstNode), window.removeEventListener("mouseup", selectSecondNode)}
-  }, [nodeHovered, nodes, startNode])
+  }, [nodeHovered, nodes, startNode]);
 
 
 
@@ -369,6 +375,8 @@ const Graph = () => {
             setIsDirected={setIsDirected}
             clearGraph={clearComponents}
             clearWeights={clearWeights}
+            DFS={DFS}
+            outputString ={outputString}
           />
       </div>
     </>

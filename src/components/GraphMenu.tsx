@@ -22,15 +22,18 @@ type GraphMenuProps = {
   setIsDirected: React.Dispatch<React.SetStateAction<boolean>>;
   clearGraph: () => void;
   clearWeights: () => void;
+  DFS: (node : number) => void;
+  outputString: string;
 };
 
 
-const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, weightFontSize, setWeightFontSize, showNodeLabels, setShowNodeLabels, showNodeIDS, setShowNodesIDS, isWeighted, setIsWeighted, isDirected, setIsDirected, clearGraph, clearWeights}: GraphMenuProps) => {
+const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, weightFontSize, setWeightFontSize, showNodeLabels, setShowNodeLabels, showNodeIDS, setShowNodesIDS, isWeighted, setIsWeighted, isDirected, setIsDirected, clearGraph, clearWeights, DFS, outputString}: GraphMenuProps) => {
   const [menuState, setMenuState] = useState("options");
   const [changingKey, setChangingKey] = useState<string | null>(null);
   const [visualState, setVisualState] = useState(true);
   const [graphsAlgosState, setGraphsAlgosState] = useState(true);
   const [miscState, setMiscState] = useState(false);
+  const [startNode, setStartNode] = useState<number | null>(null);
 
 
 
@@ -145,8 +148,16 @@ const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, weightFontSiz
               <div>
                 <h1 className="font-bold p-2">Algorithms</h1>
                 <div className="p-2 flex flex-row items-center">
+                  <h2 className="mr-2">Start Node: </h2>
+                  <input onChange={(e) => setStartNode(Number(e.target.value))} type="number" className="w-10 h-5 border"/>
+                </div>
+                <div className="p-2 flex flex-row items-center">
                   <h2>Depth-first search (DFS)</h2>
-                  <button className="bg-gray-400 p-1 ml-2 rounded">Start</button>
+                  <button onClick={() => {
+                    if (startNode !== null) {
+                      DFS(startNode);
+                    }
+                  }} className="bg-gray-400 p-1 ml-2 rounded" >Start</button>
                 </div>
                 <div className="p-2 flex flex-row items-center">
                   <h2>Breadth-first search (BFS)</h2>
@@ -155,6 +166,10 @@ const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, weightFontSiz
                 <div className="p-2 flex flex-row items-center">
                   <h2>Dijkstra's Algorithm</h2>
                   <button className="bg-gray-400 p-1 ml-2 rounded">Start</button>
+                </div>
+                <div className="p-2 flex flex-col items-center">
+                  <h2>Output box</h2>
+                 <textarea value={outputString} readOnly className="border w-full h-40 resize-none"></textarea>
                 </div>
               </div>
             </div>

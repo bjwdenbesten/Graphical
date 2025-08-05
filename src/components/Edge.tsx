@@ -1,7 +1,6 @@
 import React from 'react'
 import { useState , useRef, useEffect } from 'react';
-
-import type {NodeData} from "./Graph";
+import type {NodeData} from '../types';
 
 interface EdgeProps {
     id: number;
