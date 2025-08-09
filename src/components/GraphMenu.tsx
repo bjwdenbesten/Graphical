@@ -23,11 +23,12 @@ type GraphMenuProps = {
   clearGraph: () => void;
   clearWeights: () => void;
   DFS: (node : number) => void;
+  BFS: (node: number) => void;
   outputString: string;
 };
 
 
-const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, weightFontSize, setWeightFontSize, showNodeLabels, setShowNodeLabels, showNodeIDS, setShowNodesIDS, isWeighted, setIsWeighted, isDirected, setIsDirected, clearGraph, clearWeights, DFS, outputString}: GraphMenuProps) => {
+const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, weightFontSize, setWeightFontSize, showNodeLabels, setShowNodeLabels, showNodeIDS, setShowNodesIDS, isWeighted, setIsWeighted, isDirected, setIsDirected, clearGraph, clearWeights, DFS, BFS, outputString}: GraphMenuProps) => {
   const [menuState, setMenuState] = useState("options");
   const [changingKey, setChangingKey] = useState<string | null>(null);
   const [visualState, setVisualState] = useState(true);
@@ -161,10 +162,18 @@ const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, weightFontSiz
                 </div>
                 <div className="p-2 flex flex-row items-center">
                   <h2>Breadth-first search (BFS)</h2>
-                  <button className="bg-gray-400 p-1 ml-2 rounded">Start</button>
+                  <button onClick={() => {
+                    if (startNode !== null) {
+                      BFS(startNode);
+                    }
+                  }}className="bg-gray-400 p-1 ml-2 rounded">Start</button>
                 </div>
                 <div className="p-2 flex flex-row items-center">
                   <h2>Dijkstra's Algorithm</h2>
+                  <button className="bg-gray-400 p-1 ml-2 rounded">Start</button>
+                </div>
+                <div className="p-2 flex flex-row items-center">
+                  <h2>Bellman-Ford Algorithm</h2>
                   <button className="bg-gray-400 p-1 ml-2 rounded">Start</button>
                 </div>
                 <div className="p-2 flex flex-col items-center">

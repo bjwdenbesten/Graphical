@@ -9,6 +9,7 @@ interface NodeProps {
   onMouseDown?: () => void;
   showLabel: boolean;
   showID: boolean;
+  isHighlighted: boolean;
   setNodeHovered: React.Dispatch<React.SetStateAction<number | null>>;
   setDragOffset: React.Dispatch<React.SetStateAction<{x: number, y: number}>>;
 }
@@ -24,11 +25,12 @@ const Node = ({
   showID,
   setNodeHovered,
   setDragOffset,
+  isHighlighted,
 }: NodeProps) => {
   return (
     <>
       <div
-        className="select-none cursor-pointer bg-white absolute border-4 text-black rounded-full shadow-md flex items-center justify-center flex-col"
+        className={`select-none cursor-pointer bg-white absolute border-4 text-black rounded-full shadow-md flex items-center justify-center flex-col ${isHighlighted ? 'border-red-400' : ''}`}
         onMouseDown={(e) => {
           if (e.button === 0 && onMouseDown) {
             setDragOffset({x: e.clientX - posx, y: e.clientY - posy});

@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import type {NodeData, EdgeData, groupedEdge, Pair} from "../types.ts";
 
 import { DFS_main } from "../algorithms/DFS";
+import { BFS_main } from "../algorithms/BFS";
 
 
 let node_id = 0;
@@ -73,9 +74,75 @@ const Graph = () => {
   const [isDirected, setIsDirected] = useState(false);
 
   //algorithm handling
-  const DFS = (startingNode: number) => {
+
+  const find_IDS = (path: Pair[]) => {
+    const node_ids: Pair[] = [];
+    const edge_ids: number[] = [];
+    for (let i = 0; i < path.length; i++) {
+      let begin_id = -1;
+      let end_id = -1;
+      for (let j = 0; j < nodes.length; j++) {
+        if (path[i][0] === nodes[j].label) {
+          begin_id = nodes[j].id;
+        }
+        if (path[i][1] === nodes[j].label) {
+          end_id = nodes[j].id;
+        }
+      }
+      node_ids.push([begin_id, end_id] as Pair);
+      let node_id = -1;
+      for (let k = 0; k < edges.length; k++) {
+        if (isDirected) {
+          if (edges[k].startID === begin_id && edges[k].endID === end_id) {
+            node_id = edges[k].id;
+          }
+        }
+        else {
+          if ((edges[k].startID === begin_id && edges[k].endID === end_id) || (edges[k].startID === end_id && edges[k].endID === begin_id)) {
+            node_id = edges[k].id;
+          }
+        }
+      }
+      edge_ids.push(node_id);
+    }
+    return [node_ids, edge_ids];
+  }
+
+
+  const DFS = async(startingNode: number) => {
     const path = DFS_main(nodes, edges, isDirected, startingNode);
+    const [nodePairs, edgeIDS] = find_IDS(path) as[Pair[], number[]];
+
     setOutputString(convert_output("DFS", path));
+    await animatePath(nodePairs, edgeIDS);
+  }
+
+  const animatePath = async (nodePairs: Pair[], edgeIDS: number[]) => {
+    for (let i = 0; i < nodePairs.length; i++) {
+      const [startID, endID] = nodePairs[i];
+      const edgeID = edgeIDS[i];
+      highlightNode(startID, true);
+      if (i == 0) {
+        await new Promise(res => setTimeout(res, 1000));
+      }
+      highlightNode(endID, true);
+      highlightEdge(edgeID, true);
+      await new Promise(res => setTimeout(res, 1000));
+    }
+    for (let i = 0; i < nodePairs.length; i++) {
+      const [startID, endID] = nodePairs[i];
+      const edgeID = edgeIDS[i];
+      highlightNode(startID, false);
+      highlightNode(endID, false);
+      highlightEdge(edgeID, false);
+    }
+  }
+
+  const BFS = async(startingNode: number) => {
+    const path = BFS_main(nodes, edges, isDirected, startingNode);
+    const [nodePairs, edgeIDS] = find_IDS(path) as[Pair[], number[]];
+    setOutputString(convert_output("BFS", path));
+    await animatePath(nodePairs, edgeIDS);
   }
 
   const convert_output = (type: string, pairs: Pair[]) => {
@@ -88,6 +155,22 @@ const Graph = () => {
       }
     }
     return ret_string;
+  }
+
+  const highlightNode = (id: number, value: boolean) => {
+    setNodes(prev => 
+      prev.map(node =>
+        node.id === id ? {...node, highlighted: value} : node
+      )
+    );
+  }
+
+  const highlightEdge = (id: number, value: boolean) => {
+    setEdges(prev => 
+      prev.map(edge =>
+          edge.id === id ? {...edge, highlighted: value} : edge
+      )
+    );
   }
 
 
@@ -136,6 +219,7 @@ const Graph = () => {
         weight: 0,
         startID: startNode.id,
         endID: endNode.id,
+        highlighted: false
       },
     ]);
     edge_id++;
@@ -180,6 +264,7 @@ const Graph = () => {
         x: x,
         y: y,
         size: nodeSize,
+        highlighted: false
       },
     ]);
     node_id++;
@@ -327,6 +412,7 @@ const Graph = () => {
               key={edge.id}
               id={edge.id}
               weight = {edge.weight}
+              highlighted={edge.highlighted}
               weightSize={weightSize}
               start={startingNode}
               end={endingNode}
@@ -347,6 +433,7 @@ const Graph = () => {
               key={nodes.id}
               label={nodes.label}
               id={nodes.id}
+              isHighlighted={nodes.highlighted}
               posx={nodes.x}
               posy={nodes.y}
               size={nodeSize}
@@ -376,6 +463,7 @@ const Graph = () => {
             clearGraph={clearComponents}
             clearWeights={clearWeights}
             DFS={DFS}
+            BFS={BFS}
             outputString ={outputString}
           />
       </div>

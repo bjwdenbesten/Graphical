@@ -8,6 +8,7 @@ interface EdgeProps {
     weightSize: number;
     start: NodeData;
     end: NodeData;
+    highlighted: boolean;
     edgeIndex: number;
     edgeGroupNumber: number;
     setEdgeHovered: React.Dispatch<React.SetStateAction<number | null>>;
@@ -17,7 +18,7 @@ interface EdgeProps {
     changeWeight: (id: number, newWeight: number) => void;
 }
 
-const Edge = ({id, weight, weightSize, start, end, edgeIndex, edgeGroupNumber, setEdgeHovered, isDirected, isWeighted, nodeRadius, changeWeight} : EdgeProps) => {
+const Edge = ({id, weight, weightSize, start, end, highlighted, edgeIndex, edgeGroupNumber, setEdgeHovered, isDirected, isWeighted, nodeRadius, changeWeight} : EdgeProps) => {
   
   //calculate the distance between start and ending node
   const dx = end.x - start.x;
@@ -75,12 +76,12 @@ const Edge = ({id, weight, weightSize, start, end, edgeIndex, edgeGroupNumber, s
           orient="auto"
           markerUnits="strokeWidth"
         >
-          <path d="M0,0 L10,5 L0,10 Z" fill="black" />
+          <path d="M0,0 L10,5 L0,10 Z" fill={highlighted ? "red" : "black"} />
         </marker>
       </defs>
       <path
         d={`M ${x1} ${y1} Q ${curveX} ${curveY} ${x2} ${y2}`}
-        stroke="black"
+        stroke={highlighted ? "red" : "black"}
         strokeWidth="3"
         fill="none"
         markerEnd={isDirected ? `url(#${markerID})` : undefined}

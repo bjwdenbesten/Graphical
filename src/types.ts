@@ -4,6 +4,7 @@ export interface NodeData {
     x: number;
     y: number;
     size: number;
+    highlighted: boolean;
   }
   
 export interface EdgeData {
@@ -11,6 +12,7 @@ export interface EdgeData {
     weight: number;
     startID: number;
     endID: number;
+    highlighted: boolean;
   }
   
 export type groupedEdge = {
