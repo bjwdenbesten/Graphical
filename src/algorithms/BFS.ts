@@ -30,28 +30,31 @@ class Queue<T> implements IQueue<T> {
     size(): number {
       return this.storage.length;
     }
-  }
+}
 
 
 export function BFS_main(nodeList: NodeData[], edgeList: EdgeData[], isDirected: boolean, startNode: number) {
-    const adjList: Record<number, number[]> = createAdjList(nodeList, edgeList, isDirected);
+    const adjList: Record<number, Pair[]> = createAdjList(nodeList, edgeList, isDirected);
     const path: Pair[] = [];
+    console.log(adjList);
     const visited: Record<number, boolean> = {};
     BFS(adjList, startNode, visited, path);
     return path;
 }
 
 
-function BFS (adjList: Record<number, number[]>, startNode: number, visited: Record<number, boolean>, path: Pair[]) {
+function BFS (adjList: Record<number, Pair[]>, startNode: number, visited: Record<number, boolean>, path: Pair[]) {
   const queue = new Queue<number>();
   queue.enqueue(startNode);
   visited[startNode] = true;
 
   while (queue.size() != 0) {
     const node = queue.dequeue();
-    if (!node) break;
+    if (node == null) break;
+    if (adjList[node] == null) continue;
+    console.log(node);
     for (let i = 0; i < adjList[node].length; i++) {
-      const neighbor = adjList[node][i];
+      const neighbor = adjList[node][i][0];
       if (!visited[neighbor]) {
         visited[neighbor] = true;
         path.push([node, neighbor]);

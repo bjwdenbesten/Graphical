@@ -6,6 +6,7 @@ import type {NodeData, EdgeData, groupedEdge, Pair} from "../types.ts";
 
 import { DFS_main } from "../algorithms/DFS";
 import { BFS_main } from "../algorithms/BFS";
+import { Dijkstra_main } from "../algorithms/Dijkstra.ts";
 
 
 let node_id = 0;
@@ -153,6 +154,27 @@ const Graph = () => {
       if (i != pairs.length - 1) {
         ret_string += '\n';
       }
+    }
+    return ret_string;
+  }
+
+  const Dijkstras = (sourceNode: number) => {
+    const distances = Dijkstra_main(sourceNode, nodes, edges, isDirected);
+    setOutputString(convert_distances("Dijkstra", distances));
+  }
+
+  const convert_distances = (type: string, distances: Record<number, number>) => {
+    const size = Object.keys(distances).length;
+    let ret_string = type + " Output\n";
+    ret_string += "Total Nodes: " + size + "\n";
+    ret_string += "(Node : Distance)\n"
+
+    let count = 0;
+
+    for (const [node, distance] of Object.entries(distances)) {
+      ret_string += node + " : " + distance;
+      if (count != size - 1) ret_string += "\n";
+      count++;
     }
     return ret_string;
   }
@@ -464,6 +486,7 @@ const Graph = () => {
             clearWeights={clearWeights}
             DFS={DFS}
             BFS={BFS}
+            Dijkstra={Dijkstras}
             outputString ={outputString}
           />
       </div>
