@@ -40,15 +40,14 @@ export function BellmanFord_main(sourceNode: number, nodeList: NodeData[], edgeL
     //now we check which nodes are reachable from those above
     const nodes: number[] = [];
     for (let i = 1; i < V + 1; i++) {
-        if (IsNegCycle[i]) nodes.push(i);
+        if (IsNegCycle[i]) {nodes.push(i)};
     }
 
     while (nodes.length != 0) {
         const node = nodes.pop();
         if (node == null) continue;
-        if (adjList[node] == null) continue;
-        if (dist[node] === -Infinity) continue;
         dist[node] = -Infinity;
+        if (adjList[node] == null) continue;
         for (let i = 0; i < adjList[node].length; i++) {
             const neighbor = adjList[node][i][0];
             if (!IsNegCycle[neighbor]) {
