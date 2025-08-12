@@ -6,9 +6,11 @@ interface NodeProps {
   posx: number;
   posy: number;
   size: number;
+  distance: number;
   onMouseDown?: () => void;
   showLabel: boolean;
   showID: boolean;
+  showDistance:boolean;
   isHighlighted: boolean;
   setNodeHovered: React.Dispatch<React.SetStateAction<number | null>>;
   setDragOffset: React.Dispatch<React.SetStateAction<{x: number, y: number}>>;
@@ -20,15 +22,18 @@ const Node = ({
   posx,
   posy,
   size,
+  distance,
   onMouseDown,
   showLabel,
   showID,
+  showDistance,
   setNodeHovered,
   setDragOffset,
   isHighlighted,
 }: NodeProps) => {
   return (
     <>
+    <span className="text-red-400" style={{position: "absolute", left: posx, top: posy - size / 2 - size / 2, transform: "translateX(-50%)", whiteSpace:"nowrap",}}>{showDistance ? distance : ""} </span>
       <div
         className={`select-none cursor-pointer bg-white absolute border-4 text-black rounded-full shadow-md flex items-center justify-center flex-col ${isHighlighted ? 'border-red-400' : ''}`}
         onMouseDown={(e) => {

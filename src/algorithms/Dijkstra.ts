@@ -2,7 +2,7 @@ import type { NodeData, EdgeData, Pair } from "../types.ts";
 import { createAdjList } from "./createAdjList.ts";
 
 
-//simple priority queue, fine for smaller graphs
+//simple priority queue, fine for smaller graphs (not true dijkstra's, but animation will be the same)
 
 interface IPriorityQueue<T> {
     push(item: T, priority: number): void;
@@ -43,6 +43,10 @@ export function Dijkstra_main(sourceNode: number, nodeList: NodeData[], edgeList
     const visited: Record<number, boolean> = [];
     const distances: Record<number, number> = [];
 
+    const pairs: Pair[] = [];
+    const weights: number[] = [];
+    const state: Pair[] = [];
+
     //set up the distances map and visited map
     for (let i = 0; i < nodeList.length; i++) {
         const node = nodeList[i].label;
@@ -51,11 +55,11 @@ export function Dijkstra_main(sourceNode: number, nodeList: NodeData[], edgeList
     }
     distances[sourceNode] = 0;
 
-    Dijkstra(sourceNode, adjList, visited, distances);
-    return distances;
+    Dijkstra(sourceNode, adjList, visited, distances, pairs, weights, state);
+    return [distances, pairs, weights, state];
 }
 
-function Dijkstra(sourceNode: number, adjList: Record<number, Pair[]>, visited: Record<number, boolean>, distances: Record<number, number>) {
+function Dijkstra(sourceNode: number, adjList: Record<number, Pair[]>, visited: Record<number, boolean>, distances: Record<number, number>, pairs: Pair[], weights: number[], state: Pair[]) {
     const pq = new PriorityQueue<number>()
     pq.push(sourceNode, 0);
 
@@ -70,10 +74,16 @@ function Dijkstra(sourceNode: number, adjList: Record<number, Pair[]>, visited: 
             const neighbor = adjList[node][i][0];
             if (visited[neighbor]) continue;
             const weight = adjList[node][i][1];
+            pairs.push([node, neighbor]);
+            weights.push(weight);
             const newDistance = distance + weight;
             if (newDistance < distances[neighbor]) {
                 distances[neighbor] = newDistance;
                 pq.push(neighbor, newDistance);
+                state.push([neighbor, newDistance]);
+            }
+            else {
+                state.push([-1, -1]);
             }
         }
     }

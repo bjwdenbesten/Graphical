@@ -4,6 +4,7 @@ export interface NodeData {
     x: number;
     y: number;
     size: number;
+    distance: number;
     highlighted: boolean;
   }
   

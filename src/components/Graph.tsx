@@ -7,6 +7,7 @@ import type {NodeData, EdgeData, groupedEdge, Pair} from "../types.ts";
 import { DFS_main } from "../algorithms/DFS";
 import { BFS_main } from "../algorithms/BFS";
 import { Dijkstra_main } from "../algorithms/Dijkstra.ts";
+import { BellmanFord_main } from "../algorithms/BellmanFord.ts";
 
 
 let node_id = 0;
@@ -63,6 +64,9 @@ const Graph = () => {
   //menu
   const [outputString, setOutputString] = useState<string> ("");
 
+  //animation stuff
+  const [showDistance, setShowDistance] = useState<boolean> (false);
+
 
 
   const mouseRef = useRef(mousePosition);
@@ -76,12 +80,16 @@ const Graph = () => {
 
   //algorithm handling
 
-  const find_IDS = (path: Pair[]) => {
+  const find_IDS = (path: Pair[], weights: undefined | number[]) => {
     const node_ids: Pair[] = [];
     const edge_ids: number[] = [];
     for (let i = 0; i < path.length; i++) {
       let begin_id = -1;
       let end_id = -1;
+      let weight = -1;
+      if (weights !== undefined) {
+        weight = weights[i];
+      }
       for (let j = 0; j < nodes.length; j++) {
         if (path[i][0] === nodes[j].label) {
           begin_id = nodes[j].id;
@@ -95,12 +103,26 @@ const Graph = () => {
       for (let k = 0; k < edges.length; k++) {
         if (isDirected) {
           if (edges[k].startID === begin_id && edges[k].endID === end_id) {
-            node_id = edges[k].id;
+            if (weights !== undefined) {
+              if (edges[k].weight === weight) {
+                node_id = edges[k].id;
+              }
+            }
+            else {
+              node_id = edges[k].id;
+            }
           }
         }
         else {
           if ((edges[k].startID === begin_id && edges[k].endID === end_id) || (edges[k].startID === end_id && edges[k].endID === begin_id)) {
-            node_id = edges[k].id;
+            if (weights !== undefined) {
+              if (edges[k].weight === weight) {
+                node_id = edges[k].id;
+              }
+            }
+            else {
+              node_id = edges[k].id;
+            }
           }
         }
       }
@@ -112,13 +134,13 @@ const Graph = () => {
 
   const DFS = async(startingNode: number) => {
     const path = DFS_main(nodes, edges, isDirected, startingNode);
-    const [nodePairs, edgeIDS] = find_IDS(path) as[Pair[], number[]];
-
+    const [nodePairs, edgeIDS] = find_IDS(path, undefined) as[Pair[], number[]];
+    console.log(nodePairs);
     setOutputString(convert_output("DFS", path));
     await animatePath(nodePairs, edgeIDS);
   }
 
-  const animatePath = async (nodePairs: Pair[], edgeIDS: number[]) => {
+  const animatePath = async(nodePairs: Pair[], edgeIDS: number[]) => {
     for (let i = 0; i < nodePairs.length; i++) {
       const [startID, endID] = nodePairs[i];
       const edgeID = edgeIDS[i];
@@ -141,7 +163,7 @@ const Graph = () => {
 
   const BFS = async(startingNode: number) => {
     const path = BFS_main(nodes, edges, isDirected, startingNode);
-    const [nodePairs, edgeIDS] = find_IDS(path) as[Pair[], number[]];
+    const [nodePairs, edgeIDS] = find_IDS(path, undefined) as[Pair[], number[]];
     setOutputString(convert_output("BFS", path));
     await animatePath(nodePairs, edgeIDS);
   }
@@ -158,9 +180,53 @@ const Graph = () => {
     return ret_string;
   }
 
-  const Dijkstras = (sourceNode: number) => {
-    const distances = Dijkstra_main(sourceNode, nodes, edges, isDirected);
+  const Dijkstras = async(sourceNode: number) => {
+    const [distances, pairs, weights, state] = Dijkstra_main(sourceNode, nodes, edges, isDirected) as [Record<number, number>, Pair[], number[], Pair[]];
+    const [nodePairs, edgeIDS] = find_IDS(pairs, weights) as [Pair[], number[]];
     setOutputString(convert_distances("Dijkstra", distances));
+    await animateDijkstra(sourceNode, nodePairs, edgeIDS, state);
+  }
+
+  const animateDijkstra = async(sourceNode: number, nodePairs : Pair[], edgeIDS: number[], state: Pair[]) => {
+    setShowDistance(true);
+    changeDistance(sourceNode, 0);
+
+    for (let i = 0; i < nodePairs.length; i++) {
+      const startNode = nodePairs[i][0];
+      const endNode = nodePairs[i][1];
+      const edge = edgeIDS[i];
+      const [node, change] = state[i];
+
+      highlightNode(startNode, true);
+      await new Promise(res => setTimeout(res, 1000));
+      highlightEdge(edge, true);
+
+      await new Promise(res => setTimeout(res, 1000));
+
+      if (node !== -1) {
+        changeDistance(node, change);
+        await new Promise(res => setTimeout(res, 1000));
+      }
+    }
+
+    await new Promise(res => setTimeout(res, 3000));
+
+    setShowDistance(false);
+    for(let i = 0; i < nodes.length; i++) {
+      changeDistance(nodes[i].label, Infinity);
+    }
+    for (let i = 0; i < nodePairs.length; i++) {
+      highlightNode(nodePairs[i][0], false);
+      highlightNode(nodePairs[i][1], false);
+    }
+    for (let i = 0; i < edgeIDS.length; i++) {
+      highlightEdge(edgeIDS[i], false);
+    }
+  }
+
+  const BellmanFord =  (sourceNode: number) => {
+    const distances = BellmanFord_main(sourceNode, nodes, edges, isDirected);
+    setOutputString(convert_distances("Bellman-Ford", distances));
   }
 
   const convert_distances = (type: string, distances: Record<number, number>) => {
@@ -193,6 +259,14 @@ const Graph = () => {
           edge.id === id ? {...edge, highlighted: value} : edge
       )
     );
+  }
+
+  const changeDistance = (label: number, newDistance: number) => {
+    setNodes(prev =>
+      prev.map(node =>
+          node.label === label ? {...node, distance: newDistance} : node
+        )
+      );
   }
 
 
@@ -286,6 +360,7 @@ const Graph = () => {
         x: x,
         y: y,
         size: nodeSize,
+        distance: Infinity,
         highlighted: false
       },
     ]);
@@ -458,10 +533,12 @@ const Graph = () => {
               isHighlighted={nodes.highlighted}
               posx={nodes.x}
               posy={nodes.y}
+              distance={nodes.distance}
               size={nodeSize}
               onMouseDown={() => setdragNodeID(nodes.id)}
               showLabel = {showNodeLabels}
               showID = {showNodeIDS}
+              showDistance={showDistance}
               setNodeHovered = {setNodeHovered}
               setDragOffset = {setDragOffset}
             />
@@ -487,6 +564,7 @@ const Graph = () => {
             DFS={DFS}
             BFS={BFS}
             Dijkstra={Dijkstras}
+            BellmanFord={BellmanFord}
             outputString ={outputString}
           />
       </div>
