@@ -27,16 +27,18 @@ type GraphMenuProps = {
   Dijkstra: (node: number) => void;
   BellmanFord: (node: number) => void;
   outputString: string;
+  createGraph: (node: string) => void;
 };
 
 
-const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, weightFontSize, setWeightFontSize, showNodeLabels, setShowNodeLabels, showNodeIDS, setShowNodesIDS, isWeighted, setIsWeighted, isDirected, setIsDirected, clearGraph, clearWeights, DFS, BFS, Dijkstra, BellmanFord, outputString}: GraphMenuProps) => {
+const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, weightFontSize, setWeightFontSize, showNodeLabels, setShowNodeLabels, showNodeIDS, setShowNodesIDS, isWeighted, setIsWeighted, isDirected, setIsDirected, clearGraph, clearWeights, DFS, BFS, Dijkstra, BellmanFord, outputString, createGraph}: GraphMenuProps) => {
   const [menuState, setMenuState] = useState("options");
   const [changingKey, setChangingKey] = useState<string | null>(null);
   const [visualState, setVisualState] = useState(true);
   const [graphsAlgosState, setGraphsAlgosState] = useState(true);
   const [miscState, setMiscState] = useState(false);
   const [startNode, setStartNode] = useState<number | null>(null);
+  const [inputGraph, setInputGraph] = useState<string> ("");
 
 
 
@@ -202,10 +204,15 @@ const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, weightFontSiz
             </h2>
 
             <div className={miscState ? "block" : "hidden"}>
-              <div className="flex justify-center">
-                <button className="bg-gray-400 p-1 rounded border-2" onClick={clearWeights}>Clear Weights</button>
+              <div className="p-2 flex flex-col items-center">
+                <span>Paste Input Graph</span>
+                <textarea onChange={(e) => {setInputGraph(e.target.value)}}className="border w-full h-40 resize-none p-2"></textarea>
+                <button className="bg-gray-400 mt-3 p-1 rounded border-2" onClick={() => createGraph(inputGraph)}>Generate Graph</button>
               </div>
-              <div className="flex justify-center mt-4">
+              <div className="flex justify-center">
+                <button className="bg-gray-400 p-1 mt-4 rounded border-2" onClick={clearWeights}>Clear Weights</button>
+              </div>
+              <div className="flex justify-center mt-4 mb-4">
                 <button className="bg-gray-400 p-1 rounded border-2" onClick={clearGraph}>Clear Graph</button>
               </div>
 

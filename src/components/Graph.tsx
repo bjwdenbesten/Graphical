@@ -41,6 +41,7 @@ const Graph = () => {
   });
 
   const [overWorkspace, setoverWorkspace] = useState(false);
+  const [Size, setSize] = useState({w: 0, h: 0});
 
   const [nodes, setNodes] = useState<NodeData[]>([]);
   const [mousePosition, setMousePosition] = useState({ x: 20, y: 20 });
@@ -73,12 +74,25 @@ const Graph = () => {
   const workspaceRef = useRef<HTMLDivElement>(null);
   const nodeRef = useRef(nodeHovered);
   const edgeRef = useRef(edgeHovered);
+  const sizeRef = useRef({ width: 0, height: 0 });
 
   //graph states
   const [isWeighted, setIsWeighted] = useState(false);
   const [isDirected, setIsDirected] = useState(false);
 
-  //algorithm handling
+  useEffect(() => {
+    if (!workspaceRef.current) return;
+  
+    const observer = new ResizeObserver(entries => {
+      for (let entry of entries) {
+        sizeRef.current.width = entry.contentRect.width;
+        sizeRef.current.height = entry.contentRect.height;
+      }
+    });
+  
+    observer.observe(workspaceRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   const find_IDS = (path: Pair[], weights: undefined | number[]) => {
     const node_ids: Pair[] = [];
@@ -419,6 +433,69 @@ const Graph = () => {
     )
   }, [edges, setEdges])
 
+  const inputGraph = (input: string) => {
+    const lines = input.trim().split("\n");
+    const w = sizeRef.current.width;
+    const h = sizeRef.current.height;
+    const NS = nodeSize;
+    const nodeNumber = Number(lines[0].trim());
+  
+    if (Number.isNaN(nodeNumber) || nodeNumber > 100) return;
+    clearComponents();
+  
+    const newNodes: NodeData[] = [];
+  
+    let cnt = 0;
+    outer:
+    for (let i = 50; i < w - 100; i += NS + 10) {
+      for (let j = 50; j < h - 100; j += NS + 10) {
+        newNodes.push({
+          id: node_id + 1,
+          label: cnt + 1,
+          x: i,
+          y: j,
+          size: NS,
+          distance: Infinity,
+          highlighted: false
+        });
+        node_id++;
+        cnt++;
+        if (cnt >= nodeNumber) break outer;
+      }
+    }
+  
+
+    setNodes((prev) => [...prev, ...newNodes]);
+
+    const allNodes = [...nodes, ...newNodes];
+  
+    const newEdges: EdgeData[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const parts = lines[i].trim().split(" ");
+      if (parts.length < 2 || parts.length > 3) continue;
+  
+      const startLabel = Number(parts[0]);
+      const endLabel = Number(parts[1]);
+      const weight = parts.length === 3 ? Number(parts[2]) : 0;
+  
+      const startNode = allNodes.find((n) => n.label === startLabel);
+      const endNode = allNodes.find((n) => n.label === endLabel);
+      if (!startNode || !endNode) continue;
+  
+      newEdges.push({
+        id: edge_id + 1,
+        startID: startNode.id,
+        endID: endNode.id,
+        weight,
+        highlighted: false
+      });
+      edge_id++;
+    }
+  
+    setEdges((prev) => [...prev, ...newEdges]);
+  };
+
+
 
   //updates the mouse position
   useEffect(() => {
@@ -566,6 +643,7 @@ const Graph = () => {
             Dijkstra={Dijkstras}
             BellmanFord={BellmanFord}
             outputString ={outputString}
+            createGraph={inputGraph}
           />
       </div>
     </>
