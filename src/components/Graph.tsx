@@ -438,30 +438,34 @@ const Graph = () => {
     const w = sizeRef.current.width;
     const h = sizeRef.current.height;
     const NS = nodeSize;
-    const nodeNumber = Number(lines[0].trim());
+    const firstLine = lines[0].trim();
+    const firstLineParts = firstLine.split(/\s+/); // split by spaces/tabs
+    const nodeNumber = Number(firstLineParts[0]);
   
     if (Number.isNaN(nodeNumber) || nodeNumber > 100) return;
     clearComponents();
   
     const newNodes: NodeData[] = [];
   
-    let cnt = 0;
-    outer:
-    for (let i = 50; i < w - 100; i += NS + 10) {
-      for (let j = 50; j < h - 100; j += NS + 10) {
-        newNodes.push({
-          id: node_id + 1,
-          label: cnt + 1,
-          x: i,
-          y: j,
-          size: NS,
-          distance: Infinity,
-          highlighted: false
-        });
-        node_id++;
-        cnt++;
-        if (cnt >= nodeNumber) break outer;
-      }
+    const centerXMin = w * 0.25;
+    const centerXMax = w * 0.75 - 2 * NS;
+    const centerYMin = h * 0.25;
+    const centerYMax = h * 0.75 - 2 * NS;
+  
+    for (let cnt = 0; cnt < nodeNumber; cnt++) {
+      const x = Math.random() * (centerXMax - centerXMin) + centerXMin;
+      const y = Math.random() * (centerYMax - centerYMin) + centerYMin;
+  
+      newNodes.push({
+        id: node_id + 1,
+        label: cnt + 1,
+        x,
+        y,
+        size: NS,
+        distance: Infinity,
+        highlighted: false
+      });
+      node_id++;
     }
   
 
@@ -480,7 +484,7 @@ const Graph = () => {
   
       const startNode = allNodes.find((n) => n.label === startLabel);
       const endNode = allNodes.find((n) => n.label === endLabel);
-      if (!startNode || !endNode) continue;
+      if (!startNode || !endNode || (startNode.id === endNode.id)) continue;
   
       newEdges.push({
         id: edge_id + 1,
@@ -540,6 +544,7 @@ const Graph = () => {
   //checks if we are dragging a node
   useEffect(() => {
     if (dragNodeID == null) return;
+    
 
     const handleDrag = (e: MouseEvent) => {
       const bounds = workspaceRef.current?.getBoundingClientRect();
@@ -570,7 +575,7 @@ const Graph = () => {
       <div className="h-screen flex justify-end">
         <div
           ref={workspaceRef}
-          className="w-full h-full relative overflow-hidden"
+          className="w-full h-full relative overflow-hidden bg-gray-100"
           onMouseLeave={() => setoverWorkspace(false)}
           onMouseEnter={() => setoverWorkspace(true)}
         >

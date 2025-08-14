@@ -33,9 +33,9 @@ const Node = ({
 }: NodeProps) => {
   return (
     <>
-    <span className="text-red-400" style={{position: "absolute", left: posx, top: posy - size / 2 - size / 2, transform: "translateX(-50%)", whiteSpace:"nowrap",}}>{showDistance ? distance : ""} </span>
+    <span className="absolute text-sm text-red-400 transition-opacity duration-300" style={{position: "absolute", left: posx, top: posy - size / 2 - size / 2, transform: "translateX(-50%)", whiteSpace:"nowrap",}}>{showDistance ? distance : ""} </span>
       <div
-        className={`select-none cursor-pointer bg-white absolute border-4 text-black rounded-full shadow-md flex items-center justify-center flex-col ${isHighlighted ? 'border-red-400' : ''}`}
+        className={`select-none cursor-pointer bg-white absolute border-4 text-black rounded-full shadow-lg flex items-center justify-center flex-col ${isHighlighted ? 'border-red-400' : ''}`}
         onMouseDown={(e) => {
           if (e.button === 0 && onMouseDown) {
             setDragOffset({x: e.clientX - posx, y: e.clientY - posy});
