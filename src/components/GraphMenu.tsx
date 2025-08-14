@@ -34,11 +34,15 @@ type GraphMenuProps = {
 const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, weightFontSize, setWeightFontSize, showNodeLabels, setShowNodeLabels, showNodeIDS, setShowNodesIDS, isWeighted, setIsWeighted, isDirected, setIsDirected, clearGraph, clearWeights, DFS, BFS, Dijkstra, BellmanFord, outputString, createGraph}: GraphMenuProps) => {
   const [menuState, setMenuState] = useState("options");
   const [changingKey, setChangingKey] = useState<string | null>(null);
-  const [visualState, setVisualState] = useState(true);
-  const [graphsAlgosState, setGraphsAlgosState] = useState(true);
-  const [miscState, setMiscState] = useState(true);
+  const [visualState, setVisualState] = useState(false);
+  const [graphsAlgosState, setGraphsAlgosState] = useState(false);
+  const [miscState, setMiscState] = useState(false);
+  const [partyState, setPartyState] = useState(false);
   const [startNode, setStartNode] = useState<number | null>(null);
   const [inputGraph, setInputGraph] = useState<string> ("");
+
+  //server stuff
+  const [partyCode, setPartyCode] = useState<string>("testcode");
 
 
 
@@ -255,10 +259,35 @@ const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, weightFontSiz
               <div className="flex justify-center mt-2 mb-4">
                 <button className="ml-2 mr-2 w-full bg-gray-400 p-1 mt-4 rounded text-white hover:bg-gray-300" onClick={clearGraph}>Clear Graph</button>
               </div>
-
             </div>
+            
+            <h2 className="text-lg">
+              <button onClick={() => setPartyState(!partyState)}  className="w-full flex items-center justify-between p-2 bg-gradient-to-r from-slate-50 to-gray-100 hover:from-slate-100 hover:to-gray-200 border-b  border-black transition-all duration-200">
+                <span className="font-semibold text-gray-800 select-none">
+                  Party
+                </span>
+                <svg
+                className={`w-5 h-5 transform transition-transform duration-200 text-gray-600 ${
+                partyState ? "rotate-180" : ""
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+            >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+              </button>
+            </h2>
+            <div className={partyState ? "block" : "hidden"}>
+              <div className="flex flex-col items-center">
+                <span className="text-xl mt-4">Party Code</span>
+                <textarea value={partyCode} readOnly className="ml-2 mr-2 border p-2 text-center"></textarea>
+                <button className="ml-2 mr-2 bg-primary mt-3 p-2 rounded text-white hover:bg-accent-light">Start a Party</button>
+              </div>
+            </div>
+
+
           </div>
-          
           }
           
 

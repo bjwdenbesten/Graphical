@@ -9,6 +9,8 @@ import { BFS_main } from "../algorithms/BFS";
 import { Dijkstra_main } from "../algorithms/Dijkstra.ts";
 import { BellmanFord_main } from "../algorithms/BellmanFord.ts";
 
+//server imports
+
 
 let node_id = 0;
 let edge_id = 0;

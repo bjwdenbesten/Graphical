@@ -3,6 +3,7 @@ import Menu from './components/Menu';
 import Graph from './components/Graph';
 import Party from './components/Party';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { socket } from './socket.ts';
 
 
 
