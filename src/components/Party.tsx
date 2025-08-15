@@ -1,14 +1,33 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Socket } from "socket.io-client";
+import { socket } from '../socket.ts';
+import { useNavigate } from "react-router-dom";
+
+const joinParty = (ID: string) => {
+  socket.emit("join-party", ID);
+}
 
 const Party = () => {
+  const navigate = useNavigate();
   const [partyCode, setPartyCode] = useState('');
 
   const handleJoin = () => {
     if (partyCode.trim()) {
-      console.log('Joining party with code:', partyCode);
-      // Add your join party logic here
+      joinParty(partyCode);
     }
   };
+
+  useEffect(() => {
+    socket.on("join-party-result", (data) => {
+      if (data.res == "no-party") {
+        
+      }
+      else {
+        console.log("Joined party successfully");
+        navigate("/workspace");
+      }
+    })
+  }, [socket])
 
   return (
     <>

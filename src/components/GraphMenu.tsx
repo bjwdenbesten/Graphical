@@ -28,10 +28,12 @@ type GraphMenuProps = {
   BellmanFord: (node: number) => void;
   outputString: string;
   createGraph: (node: string) => void;
+  createParty: () => void;
+  partyID: string;
 };
 
 
-const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, weightFontSize, setWeightFontSize, showNodeLabels, setShowNodeLabels, showNodeIDS, setShowNodesIDS, isWeighted, setIsWeighted, isDirected, setIsDirected, clearGraph, clearWeights, DFS, BFS, Dijkstra, BellmanFord, outputString, createGraph}: GraphMenuProps) => {
+const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, weightFontSize, setWeightFontSize, showNodeLabels, setShowNodeLabels, showNodeIDS, setShowNodesIDS, isWeighted, setIsWeighted, isDirected, setIsDirected, clearGraph, clearWeights, DFS, BFS, Dijkstra, BellmanFord, outputString, createGraph, partyID, createParty}: GraphMenuProps) => {
   const [menuState, setMenuState] = useState("options");
   const [changingKey, setChangingKey] = useState<string | null>(null);
   const [visualState, setVisualState] = useState(false);
@@ -41,8 +43,6 @@ const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, weightFontSiz
   const [startNode, setStartNode] = useState<number | null>(null);
   const [inputGraph, setInputGraph] = useState<string> ("");
 
-  //server stuff
-  const [partyCode, setPartyCode] = useState<string>("testcode");
 
 
 
@@ -281,8 +281,8 @@ const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, weightFontSiz
             <div className={partyState ? "block" : "hidden"}>
               <div className="flex flex-col items-center">
                 <span className="text-xl mt-4">Party Code</span>
-                <textarea value={partyCode} readOnly className="ml-2 mr-2 border p-2 text-center"></textarea>
-                <button className="ml-2 mr-2 bg-primary mt-3 p-2 rounded text-white hover:bg-accent-light">Start a Party</button>
+                <textarea value={partyID} readOnly className="ml-2 mr-2 border p-2 text-center"></textarea>
+                <button onClick={createParty} className="ml-2 mr-2 bg-primary mt-3 p-2 rounded text-white hover:bg-accent-light">Start a Party</button>
               </div>
             </div>
 

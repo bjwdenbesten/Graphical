@@ -10,10 +10,20 @@ import { Dijkstra_main } from "../algorithms/Dijkstra.ts";
 import { BellmanFord_main } from "../algorithms/BellmanFord.ts";
 
 //server imports
+import { Socket } from "socket.io-client";
+import { socket } from '../socket.ts';
+
+import { useLocation } from "react-router-dom";
 
 
 let node_id = 0;
 let edge_id = 0;
+
+
+
+
+
+
 
 const groupEdges = (edges: EdgeData[]) : groupedEdge[] => {
   const map = new Map<string, EdgeData[]>();
@@ -81,6 +91,18 @@ const Graph = () => {
   //graph states
   const [isWeighted, setIsWeighted] = useState(false);
   const [isDirected, setIsDirected] = useState(false);
+
+  const [partyID, setPartyID] = useState<string> ("");
+
+  const createParty = () => {
+    socket.emit("create-party", {nodes, edges});
+  }
+
+  useEffect(() => {
+    socket.on("party-id", (data) => {
+      setPartyID(data);
+    })
+  }, [socket])
 
   useEffect(() => {
     if (!workspaceRef.current) return;
@@ -651,6 +673,8 @@ const Graph = () => {
             BellmanFord={BellmanFord}
             outputString ={outputString}
             createGraph={inputGraph}
+            createParty={createParty}
+            partyID = {partyID}
           />
       </div>
     </>
