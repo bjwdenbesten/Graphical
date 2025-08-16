@@ -1,7 +1,7 @@
 import GraphMenu from "./GraphMenu";
 import Node from "./Node";
 import Edge from "./Edge";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, use } from "react";
 import type {NodeData, EdgeData, groupedEdge, Pair} from "../types.ts";
 
 import { DFS_main } from "../algorithms/DFS";
@@ -13,16 +13,7 @@ import { BellmanFord_main } from "../algorithms/BellmanFord.ts";
 import { Socket } from "socket.io-client";
 import { socket } from '../socket.ts';
 
-import { useLocation } from "react-router-dom";
-
-
-let node_id = 0;
-let edge_id = 0;
-
-
-
-
-
+import { useLocation, useNavigate } from "react-router-dom";
 
 
 const groupEdges = (edges: EdgeData[]) : groupedEdge[] => {
@@ -52,10 +43,18 @@ const Graph = () => {
     Delete: "d",
   });
 
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const initialPartyData = location.state?.partyData;
+
+  const nodeID = useRef<number>(0);
+  const edgeID = useRef<number>(0);
+
   const [overWorkspace, setoverWorkspace] = useState(false);
   const [Size, setSize] = useState({w: 0, h: 0});
 
-  const [nodes, setNodes] = useState<NodeData[]>([]);
+  const [nodes, setNodes] = useState<any[]>(initialPartyData?.nodes || []);
   const [mousePosition, setMousePosition] = useState({ x: 20, y: 20 });
   const [nodeSize, setNodeSize] = useState(60);
   const [dragNodeID, setdragNodeID] = useState<number | null> (null);
@@ -65,7 +64,7 @@ const Graph = () => {
   const [nodeHovered, setNodeHovered] = useState<number | null> (null);
 
   //edge states
-  const [edges, setEdges] = useState<EdgeData[]>([]);
+  const [edges, setEdges] = useState<EdgeData[]>(initialPartyData?.edges || []);
   const [groupedEdges, setGroupedEdges] = useState<groupedEdge[]>([]);
   const [startNode, setStartNode] = useState<NodeData | null> (null);
   const [endNode, setEndNode] = useState<NodeData | null> (null);
@@ -92,17 +91,116 @@ const Graph = () => {
   const [isWeighted, setIsWeighted] = useState(false);
   const [isDirected, setIsDirected] = useState(false);
 
+
+
   const [partyID, setPartyID] = useState<string> ("");
+  const [inParty, setInParty] = useState<boolean>(false);
+
+  //sync party data once
+
+  useEffect(() => {
+    if (initialPartyData) {
+      setPartyID(initialPartyData.ID);
+      nodeID.current = initialPartyData.nodeid;
+      edgeID.current = initialPartyData.edgeid;
+      setInParty(true);
+      console.log("initialized party data");
+    }
+  }, []);
 
   const createParty = () => {
-    socket.emit("create-party", {nodes, edges});
+    socket.emit("create-party", {nodes, edges, nodeID: nodeID.current, edgeID: edgeID.current});
+    setInParty(true);
   }
 
+  const S_createNode = (x: number, y: number, id: number) => {
+    socket.emit("create-node", {partyID, x, y, id});
+    console.log("Sent create-node to server");
+  }
+
+  const S_createEdge = (id: number, startID: number, endID: number, weight: number) => {
+    socket.emit("create-edge", {partyID, id, startID, endID, weight});
+    console.log("Sent create-edge request to server");
+  }
+
+  const S_deleteNode = (id: number) => {
+    console.log(partyID);
+    socket.emit("delete-node", {partyID, id});
+    console.log("Sent delete node to server");
+  }
+
+  let lastEmitTime = 0;
+  const T_INTERVAL = 100;
+
+  const S_moveNode = (id: number, x: number, y: number) => {
+    const now = Date.now();
+    if (now - lastEmitTime > T_INTERVAL) {
+      socket.emit("node-moved", {id, x, y, partyID});
+      lastEmitTime = now;
+    }
+  }
+
+  //client listeners
   useEffect(() => {
     socket.on("party-id", (data) => {
       setPartyID(data);
     })
+    socket.on("node-created", (data: any) => {
+      const newNode = data.node;
+      console.log("found created-node on client side");
+      newNode.size = nodeSize;
+      setNodes((prev) => [...prev, newNode]);
+    })
+    socket.on("create-node-result", (data) => {
+      console.log(data.res);
+    })
+    socket.on("node-move-update", (data: any) => {
+      const id = data.id;
+      const x = data.x;
+      const y = data.y;
+      setNodes((prev) =>
+        prev.map((node) =>
+          node.id === id ? {...node, x, y} : node
+        )
+      )
+    })
+    socket.on("edge-created", (data) => {
+      const newEdge = data.edge;
+      setEdges((prev) => [...prev, newEdge]);
+      console.log("edge-created client side");
+    })
+    socket.on("node-deleted", (data) => {
+      const deletedID = data.nodeID;
+      setNodes((prev) =>
+        prev.filter((node) => node.id !== deletedID)
+      )
+      //filter out the edges stored locally that were connected to the node
+      setEdges((prev) => {
+        const filtered = prev.filter((edge) => edge.startID !== deletedID && edge.endID !== deletedID);
+        return filtered;
+      })
+      //remap the labels
+      setNodes((prev) =>
+        prev.map((node, index) => ({
+          ...node,
+          label: index + 1,
+        }))
+      )
+
+      console.log("deleted node client side");
+    })
+    socket.on("delete-node-result", (data) => {
+      console.log(data.res);
+    })
+    return () => {
+      socket.off("node-created");
+      socket.off("edge-created");
+      socket.off("node-deleted");
+    }
   }, [socket])
+
+
+  //front end functinoality below
 
   useEffect(() => {
     if (!workspaceRef.current) return;
@@ -117,6 +215,7 @@ const Graph = () => {
     observer.observe(workspaceRef.current);
     return () => observer.disconnect();
   }, []);
+
 
   const find_IDS = (path: Pair[], weights: undefined | number[]) => {
     const node_ids: Pair[] = [];
@@ -346,18 +445,23 @@ const Graph = () => {
 
   const createEdge = useCallback(() => {
     if (!startNode || !endNode) return;
+    const id = edgeID.current++;
+    if (!inParty) {
     setEdges((prev) => [
       ...prev,
       {
-        id: edge_id,
+        id: id,
         weight: 0,
         startID: startNode.id,
         endID: endNode.id,
         highlighted: false
       },
     ]);
-    edge_id++;
-  }, [startNode, endNode]);
+    }
+    else {
+      S_createEdge(id, startNode.id, endNode.id, 0);
+    }
+  }, [startNode, endNode, inParty, partyID]);
 
   useEffect(() => {
     const selectFirstNode = (e: MouseEvent) => {
@@ -390,10 +494,12 @@ const Graph = () => {
   //updates the node list with new node
   const createNode = useCallback(() => {
     const {x, y} = mouseRef.current;
+    const id = nodeID.current++;
+    if (!inParty) {
     setNodes((prev) => [
       ...prev,
       {
-        id: node_id,
+        id: id,
         label: prev.length + 1,
         x: x,
         y: y,
@@ -402,8 +508,11 @@ const Graph = () => {
         highlighted: false
       },
     ]);
-    node_id++;
-  }, [mousePosition, nodes, nodeSize]);
+    }
+    else {
+      S_createNode(x, y, id);
+    }
+  }, [mousePosition, nodes, nodeSize, nodeID, inParty, partyID]);
 
 
 
@@ -414,6 +523,7 @@ const Graph = () => {
     const edgeHovered = edgeRef.current;
     console.log("Deleting component!");
     if (nodeHovered !== null) {
+      if (!inParty) {
       setNodes((prev) => {
         const filtered = prev.filter((node)=>node.id !== nodeHovered);
         const relabeled = filtered.map((node, index) => ({
@@ -421,14 +531,17 @@ const Graph = () => {
           label: index + 1,
         }));
         return relabeled;
-      }
-      );
+      });
       setEdges((prev) => {
         const filtered = prev.filter((edge) => edge.startID !== nodeHovered && edge.endID !== nodeHovered);
         return filtered;
       })
-
+      }
+      else {
+        S_deleteNode(nodeHovered);
+      }
       setEdgeHovered(null);
+      setNodeHovered(null);
     }
     if (edgeHovered !== null) {
       console.log("Deleting edge");
@@ -437,15 +550,16 @@ const Graph = () => {
         return filter;
       })
       setEdgeHovered(null);
+      setNodeHovered(null);
     }
-  }, [nodeHovered, setNodes, edgeHovered, setEdges]);
+  }, [nodeHovered, setNodes, edgeHovered, setEdges, inParty, partyID]);
 
   //clears all components from workspace
   const clearComponents = useCallback(() => {
     setNodes([]);
     setEdges([]);
-    node_id = 0;
-    edge_id = 0;
+    nodeID.current = 0;
+    edgeID.current = 0;
   }, [setNodes, setEdges]);
 
   const clearWeights = useCallback(() => {
@@ -479,9 +593,10 @@ const Graph = () => {
     for (let cnt = 0; cnt < nodeNumber; cnt++) {
       const x = Math.random() * (centerXMax - centerXMin) + centerXMin;
       const y = Math.random() * (centerYMax - centerYMin) + centerYMin;
+      const id = nodeID.current++;
   
       newNodes.push({
-        id: node_id + 1,
+        id: id + 1,
         label: cnt + 1,
         x,
         y,
@@ -489,7 +604,6 @@ const Graph = () => {
         distance: Infinity,
         highlighted: false
       });
-      node_id++;
     }
   
 
@@ -509,15 +623,16 @@ const Graph = () => {
       const startNode = allNodes.find((n) => n.label === startLabel);
       const endNode = allNodes.find((n) => n.label === endLabel);
       if (!startNode || !endNode || (startNode.id === endNode.id)) continue;
+
+      const id = edgeID.current++;
   
       newEdges.push({
-        id: edge_id + 1,
+        id: id,
         startID: startNode.id,
         endID: endNode.id,
         weight,
         highlighted: false
       });
-      edge_id++;
     }
   
     setEdges((prev) => [...prev, ...newEdges]);
@@ -582,9 +697,17 @@ const Graph = () => {
           node.id === dragNodeID ? {...node, x: smallX - dragOffset.x, y: smallY - dragOffset.y} : node
         )
       );
+      if (inParty) {
+        S_moveNode(dragNodeID, smallX - dragOffset.x, smallY - dragOffset.y);
+      }
     }
 
-    const handleUp = () => setdragNodeID(null);
+    const handleUp = () => {
+      if (inParty) {
+        socket.emit("node-moved", {id: dragNodeID, x: mouseRef.current.x, y: mouseRef.current.y, partyid: partyID})
+      }
+      setdragNodeID(null);
+    };
 
     window.addEventListener("mousemove", handleDrag);
     window.addEventListener("mouseup", handleUp);

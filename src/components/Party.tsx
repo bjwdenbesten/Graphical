@@ -18,13 +18,16 @@ const Party = () => {
   };
 
   useEffect(() => {
-    socket.on("join-party-result", (data) => {
+    socket.on("join-party-result", (data: any) => {
       if (data.res == "no-party") {
-        
+        console.log("No party found!")
       }
-      else {
+      else if (data.res == "joined-party") {
         console.log("Joined party successfully");
-        navigate("/workspace");
+        navigate("/workspace", {state: {partyData: data.pData}});
+      }
+      else if (data.res == "error") {
+        console.log("Error in joining party or retrieving data");
       }
     })
   }, [socket])
