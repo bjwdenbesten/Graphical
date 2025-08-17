@@ -95,18 +95,59 @@ const Graph = () => {
 
   const [partyID, setPartyID] = useState<string> ("");
   const [inParty, setInParty] = useState<boolean>(false);
+  const [connected, setConnected] = useState<number> (initialPartyData?.numConnected || 1 );
 
   //sync party data once
 
   useEffect(() => {
     if (initialPartyData) {
       setPartyID(initialPartyData.ID);
+      localStorage.setItem("partyID", initialPartyData.ID);
       nodeID.current = initialPartyData.nodeid;
       edgeID.current = initialPartyData.edgeid;
       setInParty(true);
       console.log("initialized party data");
     }
   }, []);
+
+
+  //run once to check for reconnection
+  useEffect(() => {
+    const tryRejoin = () => {
+      const savedID = localStorage.getItem("partyID");
+      console.log(savedID);
+      if (!savedID) return;
+      socket.emit("join-party", savedID)
+    }
+    socket.on("connect", () => {
+      console.log("trying");
+      tryRejoin();
+    })
+
+    const onJoin = (data: any) => {
+      if (data.res === "joined-party" && data.pData) {
+        const p = data.pData;
+        setNodes(p.nodes || []);
+        setEdges(p.edges || []);
+        nodeID.current = p.nodeid ?? nodeID.current;
+        edgeID.current = p.edgeid ?? edgeID.current;
+        setInParty(true);
+        setPartyID(p.ID);
+        setConnected(p.numConnected);
+      }
+      else {
+        console.log(data.res);
+        return;
+      }
+    }
+
+    socket.on("join-party-result", onJoin);
+    return () => {
+      socket.off("connect");
+      socket.off("join-party-result", onJoin);
+    }
+  }, [])
+
 
   const createParty = () => {
     socket.emit("create-party", {nodes, edges, nodeID: nodeID.current, edgeID: edgeID.current});
@@ -124,9 +165,34 @@ const Graph = () => {
   }
 
   const S_deleteNode = (id: number) => {
-    console.log(partyID);
     socket.emit("delete-node", {partyID, id});
     console.log("Sent delete node to server");
+  }
+
+  const S_deleteEdge = (id: number) => {
+    socket.emit("delete-edge", {partyID, id});
+  }
+
+  const S_changeWeight = (id: number, newWeight: number) => {
+    socket.emit("change-weight", {partyID, id, newWeight});
+  }
+
+  const S_clearGraph = () => {
+    socket.emit("clear-graph", {partyID});
+  }
+
+  const S_clearWeights = () => {
+    socket.emit("clear-weights", {partyID});
+  }
+
+  const S_insertGraph = (newNodes: NodeData[], newEdges: EdgeData[]) => {
+    socket.emit("clear-graph", {partyID});
+
+    const onCleared = () => {
+      socket.off("cleared-graph", onCleared);
+      socket.emit("insert-graph", {partyID, newNodes, newEdges});
+    }
+    socket.on("cleared-graph", onCleared);
   }
 
   let lastEmitTime = 0;
@@ -150,6 +216,12 @@ const Graph = () => {
       console.log("found created-node on client side");
       newNode.size = nodeSize;
       setNodes((prev) => [...prev, newNode]);
+      setNodes((prev) =>
+      prev.map((node, index) => ({
+        ...node,
+        label: index + 1,
+      }))
+    )
     })
     socket.on("create-node-result", (data) => {
       console.log(data.res);
@@ -186,16 +258,57 @@ const Graph = () => {
           label: index + 1,
         }))
       )
-
       console.log("deleted node client side");
     })
     socket.on("delete-node-result", (data) => {
       console.log(data.res);
     })
+    socket.on("edge-deleted", (data) => {
+      const deleteEdgeID = data.edgeID;
+      setEdges((prev) =>
+        prev.filter((edge) => edge.id !== deleteEdgeID)
+      )
+    })
+    socket.on("edge-deleted-result", (data) => {
+      console.log(data.res);
+    })
+    socket.on("weight-changed", (data) => {
+      const weight = data.weight;
+      const id = data.edgeID;
+      setEdges((prev) => 
+        prev.map((edge) => edge.id === id ? {...edge, weight: weight} : edge)
+      )
+    })
+    socket.on("cleared-graph", () => {
+      setNodes([]);
+      setEdges([]);
+      console.log("here");
+    })
+    socket.on("cleared-weights", () => {
+      setEdges((prev) => 
+        prev.map((edge) => edge ? {...edge, weight: 0} : edge)
+      )
+    })
+    socket.on("inserted-graph", (data) => {
+      const newNodes = data.nNodes;
+      const newEdges = data.nEdges;
+      setNodes((prev) => [...prev, ...newNodes]);
+      setEdges((prev) => [...prev, ...newEdges]);
+    })
+    socket.on("user-update", (data: any) => {
+      console.log("usr updated");
+      const numMembers = data.numConnected;
+      setConnected(numMembers);
+    })
     return () => {
       socket.off("node-created");
       socket.off("edge-created");
       socket.off("node-deleted");
+      socket.off("edge-deleted");
+      socket.off("weight-changed");
+      socket.off("cleared-graph");
+      socket.off("inserted-graph");
+      socket.off("user-update");
     }
   }, [socket])
 
@@ -409,9 +522,14 @@ const Graph = () => {
 
 
   const changeWeight = (id: number, newWeight: number) => {
+    if (!inParty) {
     setEdges(prev =>
       prev.map(edge => edge.id === id ? {...edge, weight: newWeight} : edge)
     );
+    }
+    else {
+      S_changeWeight(id, newWeight);
+    }
   }
 
   //make sure it stays updated
@@ -545,10 +663,15 @@ const Graph = () => {
     }
     if (edgeHovered !== null) {
       console.log("Deleting edge");
+      if (!inParty) {
       setEdges((prev) => {
         const filter = prev.filter((edge) => edge.id !== edgeHovered);
         return filter;
       })
+      }
+      else {
+        S_deleteEdge(edgeHovered);
+      }
       setEdgeHovered(null);
       setNodeHovered(null);
     }
@@ -556,20 +679,30 @@ const Graph = () => {
 
   //clears all components from workspace
   const clearComponents = useCallback(() => {
-    setNodes([]);
-    setEdges([]);
+    if (!inParty) {
+      setNodes([]);
+      setEdges([]);
+    }
+    else {
+      S_clearGraph();
+    }
     nodeID.current = 0;
     edgeID.current = 0;
-  }, [setNodes, setEdges]);
+  }, [setNodes, setEdges, inParty, partyID]);
 
   const clearWeights = useCallback(() => {
+    if (!inParty) {
     setEdges((edge) => 
       edge.map((edge) => ({
         ...edge,
         weight: 0,
       }))
     )
-  }, [edges, setEdges])
+    }
+    else {
+      S_clearWeights();
+    }
+  }, [edges, setEdges, inParty, partyID])
 
   const inputGraph = (input: string) => {
     const lines = input.trim().split("\n");
@@ -593,7 +726,8 @@ const Graph = () => {
     for (let cnt = 0; cnt < nodeNumber; cnt++) {
       const x = Math.random() * (centerXMax - centerXMin) + centerXMin;
       const y = Math.random() * (centerYMax - centerYMin) + centerYMin;
-      const id = nodeID.current++;
+      const id = nodeID.current;
+      nodeID.current++;
   
       newNodes.push({
         id: id + 1,
@@ -606,10 +740,11 @@ const Graph = () => {
       });
     }
   
+    if (!inParty) {
+      setNodes(newNodes);
+    }
 
-    setNodes((prev) => [...prev, ...newNodes]);
-
-    const allNodes = [...nodes, ...newNodes];
+    const allNodes = [...newNodes];
   
     const newEdges: EdgeData[] = [];
     for (let i = 1; i < lines.length; i++) {
@@ -622,9 +757,13 @@ const Graph = () => {
   
       const startNode = allNodes.find((n) => n.label === startLabel);
       const endNode = allNodes.find((n) => n.label === endLabel);
-      if (!startNode || !endNode || (startNode.id === endNode.id)) continue;
+      if (!startNode || !endNode || (startNode.id === endNode.id)) {
+        console.log("couldnt' find node")
+        continue;
+      };
 
-      const id = edgeID.current++;
+      const id = edgeID.current;
+      edgeID.current++;
   
       newEdges.push({
         id: id,
@@ -634,8 +773,13 @@ const Graph = () => {
         highlighted: false
       });
     }
-  
-    setEdges((prev) => [...prev, ...newEdges]);
+    console.log(newEdges);
+    if (!inParty) {
+      setEdges(newEdges);
+    }
+    if (inParty) {
+      S_insertGraph(newNodes, newEdges);
+    }
   };
 
 
@@ -726,6 +870,7 @@ const Graph = () => {
           onMouseLeave={() => setoverWorkspace(false)}
           onMouseEnter={() => setoverWorkspace(true)}
         >
+          <span className="position: absolute top-2 left-2">{inParty ? `Connected: ${connected}` : ""}</span>
           <svg className="absolute top-1 left-0 w-full h-full pointer-events-none z-0">
           {groupedEdges.map((grouped) => {
             const {edge, index, total} = grouped;
