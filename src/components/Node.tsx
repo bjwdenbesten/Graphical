@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 interface NodeProps {
   id: number;
   label: number;

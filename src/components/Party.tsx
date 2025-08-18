@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Socket } from "socket.io-client";
 import { socket } from '../socket.ts';
 import { useNavigate } from "react-router-dom";
 
