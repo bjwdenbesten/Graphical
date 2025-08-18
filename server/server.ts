@@ -312,7 +312,6 @@ io.on("connection", (socket) => {
 
     }
     catch (e) {
-      console.log("Error in retrieving party data");
       socket.emit("join-party-result", {res: "error"});
     }
   })
