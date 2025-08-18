@@ -1,4 +1,5 @@
 import { Server } from "socket.io";
+import { createServer } from "http";
 import { v4 as uuidv4 } from "uuid";
 import { Redis } from "ioredis";
 import { z } from "zod";
@@ -18,7 +19,7 @@ type partyData = {
   created: string;
 }
 
-const redis = new Redis();
+const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 
 const partyIdSchema = z.uuidv4();
 
@@ -182,10 +183,15 @@ function rateLimiter(limit: number, interval: number) {
   };
 }
 
+const server = createServer();
 
-const io = new Server(3000, {
+const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173"],
+    origin: process.env.NODE_ENV === 'production' 
+      ? (process.env.CLIENT_URL ? [process.env.CLIENT_URL] : [])
+      : ["http://localhost:5173"],
+    methods: ["GET", "POST"],
+    credentials: true
   },
 });
 
