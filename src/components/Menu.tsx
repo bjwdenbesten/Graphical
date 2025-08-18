@@ -6,9 +6,6 @@ const Menu = () => {
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-gray-100 to-gray-300">
       <div className="bg-gray-800 text-white flex w-full h-16 items-center justify-end px-6 shadow-md">
-        <button className="transition bg-primary hover:bg-accent-light text-white px-4 py-2 rounded-lg font-medium shadow hover:shadow-lg">
-          Login / Join
-        </button>
       </div>
 
       <div className="flex flex-col h-full items-center justify-center space-y-6 text-center">

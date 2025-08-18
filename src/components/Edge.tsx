@@ -47,7 +47,6 @@ const Edge = ({id, weight, weightSize, start, end, highlighted, edgeIndex, edgeG
   const markerID = `arrow-${id}`;
 
   const [editing, setEditing] = useState(false);
-  const [editingWeight, setEditingWeight] = useState<number | null> (null);
   const [inputString, setInputString] = useState<string>("");
 
   const inputRef = useRef<HTMLInputElement>(null);

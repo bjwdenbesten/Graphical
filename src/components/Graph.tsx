@@ -1,7 +1,7 @@
 import GraphMenu from "./GraphMenu";
 import Node from "./Node";
 import Edge from "./Edge";
-import { useState, useEffect, useCallback, useRef, use } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type {NodeData, EdgeData, groupedEdge, Pair} from "../types.ts";
 
 import { DFS_main } from "../algorithms/DFS";
@@ -10,10 +10,9 @@ import { Dijkstra_main } from "../algorithms/Dijkstra.ts";
 import { BellmanFord_main } from "../algorithms/BellmanFord.ts";
 
 //server imports
-import { Socket } from "socket.io-client";
 import { socket } from '../socket.ts';
 
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 
 const groupEdges = (edges: EdgeData[]) : groupedEdge[] => {
@@ -44,7 +43,6 @@ const Graph = () => {
   });
 
   const location = useLocation();
-  const navigate = useNavigate();
 
   const initialPartyData = location.state?.partyData;
 
@@ -52,7 +50,6 @@ const Graph = () => {
   const edgeID = useRef<number>(0);
 
   const [overWorkspace, setoverWorkspace] = useState(false);
-  const [Size, setSize] = useState({w: 0, h: 0});
 
   const [nodes, setNodes] = useState<any[]>(initialPartyData?.nodes || []);
   const [mousePosition, setMousePosition] = useState({ x: 20, y: 20 });
@@ -182,13 +179,7 @@ const Graph = () => {
   }
 
   const S_insertGraph = (newNodes: NodeData[], newEdges: EdgeData[]) => {
-    socket.emit("clear-graph", {partyID});
-
-    const onCleared = () => {
-      socket.off("cleared-graph", onCleared);
-      socket.emit("insert-graph", {partyID, newNodes, newEdges});
-    }
-    socket.on("cleared-graph", onCleared);
+    socket.emit("insert-graph", {partyID, newNodes, newEdges});
   }
 
   let lastEmitTime = 0;
@@ -282,6 +273,7 @@ const Graph = () => {
       )
     })
     socket.on("inserted-graph", (data) => {
+      console.log('recieved');
       const newNodes = data.nNodes;
       const newEdges = data.nEdges;
       setNodes((prev) => [...prev, ...newNodes]);
@@ -433,7 +425,6 @@ const Graph = () => {
 
     for (let i = 0; i < nodePairs.length; i++) {
       const startNode = nodePairs[i][0];
-      const endNode = nodePairs[i][1];
       const edge = edgeIDS[i];
       const [node, change] = state[i];
 

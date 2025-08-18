@@ -41,6 +41,51 @@ const EdgeSchema = z.object({
 });
 
 
+//simple redis mutex lock
+class RedisMutex {
+  private redis: Redis;
+  private lockTimeout: number;
+
+  constructor(redis: Redis, lockTimeout = 5000) {
+    this.redis = redis;
+    this.lockTimeout = lockTimeout;
+  }
+
+  //aquire lock for the key
+  async aquire(key:string, timeout = 10000) : Promise<string> {
+    const lockKey = `lock${key}`;
+    const lockVal = uuidv4();
+
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < timeout) {
+      const res = await this.redis.set(lockKey, lockVal, 'PX', this.lockTimeout, 'NX');
+      if (res =='OK') return lockVal;
+      await new Promise(resolve => setTimeout(resolve, 50));
+    };
+    throw new Error(`Failed to get lock for ${key}`);
+  }
+
+  //release lock
+  async release(key: string, lockVal: string): Promise<void> {
+    const lockKey = `lock${key}`;
+
+    //lua script - delete key if it equals our key
+    const script = `
+      if redis.call('GET', KEYS[1]) == ARGV[1] then
+        return redis.call('DEL', KEYS[1])
+      else
+        return 0
+      end
+    `;
+    await this.redis.eval(script, 1, lockKey, lockVal)
+  }
+}
+
+const mtx = new RedisMutex(redis);
+
+
+//some checks are redundant but ok
 const validateData = {
   partyId: (partyId) => {
     if (!partyId || typeof partyId !== 'string') {
@@ -254,9 +299,7 @@ io.on("connection", (socket) => {
           edges: pData.edges,
           nodeid: pData.nodeid,
           edgeid: pData.edgeid,
-          members: pData.members,
           numConnected: pData.numConnected,
-          host: pData.host,
           ID: pData.ID
         }
       });
@@ -279,7 +322,9 @@ io.on("connection", (socket) => {
     const verifyCoords = validateData.coords(x, y);
     const verifyPID = validateData.partyId(partyID);
     if (!verifyCoords.valid || !verifyPID.valid) return;
+    let lockVal: string | null = null;
     try {
+      lockVal = await mtx.aquire(partyID);
       const cachedParty = await redis.get(`party:${partyID}`);
       if (!cachedParty) {
         socket.emit("create-node-result", {res: "no-party"});
@@ -311,6 +356,10 @@ io.on("connection", (socket) => {
     catch (error) {
       console.log("Error in create node");
       socket.emit("create-node-result", {res: "error"});
+    } finally {
+      if (lockVal) {
+        await mtx.release(partyID, lockVal);
+      }
     }
   })
 
@@ -347,9 +396,11 @@ io.on("connection", (socket) => {
     const v1 = validateData.ID(startID);
     const v2 = validateData.ID(endID);
     const validateWeight = validateData.weight(weight);
+    let lockVal: string | null = null;
     if (!verifyPID.valid || !v1.valid || !v2.valid || !validateWeight.valid) return;
     if (!verifyPID.valid) return;
     try {
+      lockVal = await mtx.aquire(partyID);
       const cachedParty = await redis.get(`party:${partyID}`);
       if (!cachedParty) {
         socket.emit("create-node-result", {res: "no-party"});
@@ -375,6 +426,11 @@ io.on("connection", (socket) => {
     catch (error) {
       console.log("error in create-edge");
     }
+    finally {
+      if (lockVal) {
+        await mtx.release(partyID, lockVal);
+      }
+    }
   })
 
 
@@ -382,8 +438,10 @@ io.on("connection", (socket) => {
     const {partyID, id} = data;
     const verifyPID = validateData.partyId(partyID);
     const verify = validateData.ID(id);
+    let lockVal: string | null = null;
     if (!verifyPID.valid || !verify.valid) return;
     try {
+      lockVal = await mtx.aquire(partyID);
       const cachedParty = await redis.get(`party:${partyID}`);
       if (!cachedParty) {
         socket.emit("delete-node-result", {res: "no-party"});
@@ -402,14 +460,21 @@ io.on("connection", (socket) => {
     catch (e) {
       console.log("error in delete node");
     }
+    finally {
+      if (lockVal) {
+        await mtx.release(partyID, lockVal);
+      }
+    }
   })
 
   limited ("delete-edge", async(data) => {
     const {partyID, id} = data;
     const verifyPID = validateData.partyId(partyID);
     const verify = validateData.ID(id);
+    let lockVal: string | null = null;
     if (!verifyPID.valid || !verify.valid) return;
     try {
+      lockVal = await mtx.aquire(partyID);
       const cachedParty = await redis.get(`party:${partyID}`);
       if (!cachedParty) {
         socket.emit("delete-edge-result", {res: "no-party"});
@@ -423,6 +488,11 @@ io.on("connection", (socket) => {
     }
     catch (e) {
       console.log("error in delete edge");
+    }
+    finally {
+      if (lockVal) {
+        await mtx.release(partyID, lockVal);
+      }
     }
   })
 
@@ -454,8 +524,10 @@ io.on("connection", (socket) => {
   limited ("clear-graph", async(data) => {
     const {partyID} = data;
     const verifyPID = validateData.partyId(partyID);
+    let lockVal: string | null = null;
     if (!verifyPID.valid) return;
     try {
+      lockVal = await mtx.aquire(partyID);
       const cachedParty = await redis.get(`party:${partyID}`);
       if (!cachedParty) {
         socket.emit("clear-graph-result", {res: "no-party"});
@@ -470,6 +542,11 @@ io.on("connection", (socket) => {
     }
     catch(error) {
       console.log("error in clear-graph");
+    }
+    finally {
+      if (lockVal) {
+        await mtx.release(partyID, lockVal);
+      }
     }
   })
 
@@ -494,14 +571,18 @@ io.on("connection", (socket) => {
   limited ("insert-graph", async(data) => {
     const {partyID, newNodes, newEdges} = data;
     const verify = validateData.graphData(newNodes, newEdges);
+    let lockVal: string | null = null;
     if (!verify.valid) return;
     try {
+      lockVal = await mtx.aquire(partyID);
       const cachedParty = await redis.get(`party:${partyID}`);
       if (!cachedParty) {
         socket.emit("insert-weights-result", {res: "no-party"});
         return;
       }
       const pData = JSON.parse(cachedParty);
+      pData.nodes = [];
+      pData.edges = [];
       const idMap = new Map<number, number>();
 
       for (let i = 0; i < newNodes.length; i++) {
@@ -524,6 +605,12 @@ io.on("connection", (socket) => {
     }
     catch (e) {
       console.log("error in insert-graph");
+    }
+    finally {
+      if (lockVal) {
+        await mtx.release(partyID, lockVal);
+      }
+      console.log("Haowidjaiowdoaj");
     }
   })
   socket.on("disconnect", async(reason) => {
