@@ -29,11 +29,12 @@ type GraphMenuProps = {
   outputString: string;
   createGraph: (node: string) => void;
   createParty: () => void;
+  inParty: boolean;
   partyID: string;
 };
 
 
-const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, weightFontSize, setWeightFontSize, showNodeLabels, setShowNodeLabels, showNodeIDS, setShowNodesIDS, isWeighted, setIsWeighted, isDirected, setIsDirected, clearGraph, clearWeights, DFS, BFS, Dijkstra, BellmanFord, outputString, createGraph, partyID, createParty}: GraphMenuProps) => {
+const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, weightFontSize, setWeightFontSize, showNodeLabels, setShowNodeLabels, showNodeIDS, setShowNodesIDS, isWeighted, setIsWeighted, isDirected, setIsDirected, clearGraph, clearWeights, DFS, BFS, Dijkstra, BellmanFord, outputString, createGraph, partyID, createParty, inParty}: GraphMenuProps) => {
   const [menuState, setMenuState] = useState("options");
   const [changingKey, setChangingKey] = useState<string | null>(null);
   const [visualState, setVisualState] = useState(false);
@@ -282,7 +283,7 @@ const GraphMenu = ({ keyBinds, setKeyBinds, nodeSize, setNodeSize, weightFontSiz
               <div className="flex flex-col items-center">
                 <span className="text-xl mt-4">Party Code</span>
                 <textarea value={partyID} readOnly className="ml-2 mr-2 border p-2 text-center"></textarea>
-                <button onClick={createParty} className="ml-2 mr-2 bg-primary mt-3 p-2 rounded text-white hover:bg-accent-light">Start a Party</button>
+                <button onClick={createParty} className="ml-2 mr-2 bg-primary mt-3 p-2 rounded text-white hover:bg-accent-light">{!inParty ? "Start a Party" : "Party Started"}</button>
               </div>
             </div>
 

@@ -115,12 +115,10 @@ const Graph = () => {
   useEffect(() => {
     const tryRejoin = () => {
       const savedID = localStorage.getItem("partyID");
-      console.log(savedID);
       if (!savedID) return;
       socket.emit("join-party", savedID)
     }
     socket.on("connect", () => {
-      console.log("trying");
       tryRejoin();
     })
 
@@ -156,17 +154,15 @@ const Graph = () => {
 
   const S_createNode = (x: number, y: number, id: number) => {
     socket.emit("create-node", {partyID, x, y, id});
-    console.log("Sent create-node to server");
   }
 
   const S_createEdge = (id: number, startID: number, endID: number, weight: number) => {
     socket.emit("create-edge", {partyID, id, startID, endID, weight});
-    console.log("Sent create-edge request to server");
   }
 
   const S_deleteNode = (id: number) => {
     socket.emit("delete-node", {partyID, id});
-    console.log("Sent delete node to server");
+
   }
 
   const S_deleteEdge = (id: number) => {
@@ -213,7 +209,6 @@ const Graph = () => {
     })
     socket.on("node-created", (data: any) => {
       const newNode = data.node;
-      console.log("found created-node on client side");
       newNode.size = nodeSize;
       setNodes((prev) => [...prev, newNode]);
       setNodes((prev) =>
@@ -239,7 +234,6 @@ const Graph = () => {
     socket.on("edge-created", (data) => {
       const newEdge = data.edge;
       setEdges((prev) => [...prev, newEdge]);
-      console.log("edge-created client side");
     })
     socket.on("node-deleted", (data) => {
       const deletedID = data.nodeID;
@@ -258,7 +252,6 @@ const Graph = () => {
           label: index + 1,
         }))
       )
-      console.log("deleted node client side");
     })
     socket.on("delete-node-result", (data) => {
       console.log(data.res);
@@ -282,7 +275,6 @@ const Graph = () => {
     socket.on("cleared-graph", () => {
       setNodes([]);
       setEdges([]);
-      console.log("here");
     })
     socket.on("cleared-weights", () => {
       setEdges((prev) => 
@@ -296,7 +288,6 @@ const Graph = () => {
       setEdges((prev) => [...prev, ...newEdges]);
     })
     socket.on("user-update", (data: any) => {
-      console.log("usr updated");
       const numMembers = data.numConnected;
       setConnected(numMembers);
     })
@@ -385,7 +376,6 @@ const Graph = () => {
   const DFS = async(startingNode: number) => {
     const path = DFS_main(nodes, edges, isDirected, startingNode);
     const [nodePairs, edgeIDS] = find_IDS(path, undefined) as[Pair[], number[]];
-    console.log(nodePairs);
     setOutputString(convert_output("DFS", path));
     await animatePath(nodePairs, edgeIDS);
   }
@@ -548,11 +538,8 @@ const Graph = () => {
   useEffect(() => {
     if (startNode && endNode) {
       createEdge();
-      console.log("startingNodeID: " + startNode.id);
-      console.log("endingNodeID: " + endNode.id);
       setStartNode(null);
       setEndNode(null);
-      console.log("Created Edge");
     }
   }, [startNode, endNode, setEdges]);
 
@@ -587,7 +574,6 @@ const Graph = () => {
       nodes.map((node) => {
         node.id === nodeHovered ? setStartNode(node) : null
       })
-      console.log("Set Start Node");
     }
 
     const selectSecondNode = (e: MouseEvent) => {
@@ -599,7 +585,6 @@ const Graph = () => {
       nodes.map((node) => {
         node.id === nodeHovered ? setEndNode(node) : null
       })
-      console.log("Set End Node");
     }
 
     window.addEventListener("mousedown", selectFirstNode);
@@ -639,7 +624,6 @@ const Graph = () => {
   const deleteComponent = useCallback(() => {
     const nodeHovered = nodeRef.current;
     const edgeHovered = edgeRef.current;
-    console.log("Deleting component!");
     if (nodeHovered !== null) {
       if (!inParty) {
       setNodes((prev) => {
@@ -662,7 +646,6 @@ const Graph = () => {
       setNodeHovered(null);
     }
     if (edgeHovered !== null) {
-      console.log("Deleting edge");
       if (!inParty) {
       setEdges((prev) => {
         const filter = prev.filter((edge) => edge.id !== edgeHovered);
@@ -758,7 +741,6 @@ const Graph = () => {
       const startNode = allNodes.find((n) => n.label === startLabel);
       const endNode = allNodes.find((n) => n.label === endLabel);
       if (!startNode || !endNode || (startNode.id === endNode.id)) {
-        console.log("couldnt' find node")
         continue;
       };
 
@@ -773,7 +755,6 @@ const Graph = () => {
         highlighted: false
       });
     }
-    console.log(newEdges);
     if (!inParty) {
       setEdges(newEdges);
     }
@@ -943,6 +924,7 @@ const Graph = () => {
             createGraph={inputGraph}
             createParty={createParty}
             partyID = {partyID}
+            inParty={inParty}
           />
       </div>
     </>

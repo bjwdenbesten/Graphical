@@ -1,6 +1,9 @@
 import { Server } from "socket.io";
 import { v4 as uuidv4 } from "uuid";
 import { Redis } from "ioredis";
+import { z } from "zod";
+
+
 import type {NodeData, EdgeData} from "../src/types.ts";
 
 type partyData = {
@@ -17,6 +20,123 @@ type partyData = {
 
 const redis = new Redis();
 
+const partyIdSchema = z.uuidv4();
+
+const NodeSchema = z.object({
+  id: z.number().int().min(0).max(100000),
+  label: z.number().optional(),
+  x: z.number(),
+  y: z.number(),
+  size: z.number().optional().default(0),
+  distance: z.number().nullable().optional().default(Infinity),
+  highlighted: z.boolean().optional().default(false),
+});
+
+const EdgeSchema = z.object({
+  id: z.number().int().min(0).max(100000),
+  weight: z.number().min(-100000).max(10000),
+  startID: z.number().int().min(0).max(100000),
+  endID: z.number().int().min(0).max(100000),
+  highlighted: z.boolean().optional().default(false),
+});
+
+
+const validateData = {
+  partyId: (partyId) => {
+    if (!partyId || typeof partyId !== 'string') {
+      return {valid: false, error: "invalid PID"};
+    }
+    try {
+      partyIdSchema.parse(partyId);
+    }
+    catch (error) {
+      return {valid: false, error: "invalid PID"};
+    }
+    return {valid: true};
+  },
+  coords: (x, y) => {
+    if (typeof x !== 'number' || typeof y !== 'number') {
+      return {valid: false, error: "Coords not numbers"};
+    }
+    if (!Number.isFinite(x) || !Number.isFinite(y)) {
+      return {valid: false, error: "Coordinates must be finite numbers"};
+    }
+    return {valid: true};
+  },
+  ID: (id) => {
+    if (typeof id !== 'number' || !Number.isInteger(id) || id < 0) {
+      return {valid: false, error: "Invalid node ID"};
+    }
+    if (id > 100000) {
+      return {valid: false, error: "Too large ID"}
+    }
+    return {valid: true};
+  },
+  weight: (weight) => {
+    if (typeof weight !== 'number') {
+      return {valid: false, error: "Weight must be number"}
+    }
+    if (!Number.isFinite(weight)) {
+      return {valid: false, error: "Weight must be finite"};
+    }
+    if (weight < -100000 || weight > 10000) {
+      return {valid: false, error: "Weight out of bounds"};
+    }
+    return {valid: true};
+  },
+  graphData: (nodes, edges) => {
+    if (!Array.isArray(nodes) || !Array.isArray(edges)) {
+      return {valid: false, error: "Not arrays"};
+    }
+    if (nodes.length > 500 || edges.length > 2000) {
+      return {valid: false, error: "Too many edges or nodes"};
+    }
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      try {
+        const res = NodeSchema.parse(node);
+      }
+      catch (error) {
+        console.log("Node validation fail", error);
+        return {valid: false, error: "invalid node"};
+      }
+    }
+
+    for (let i = 0; i < edges.length; i++) {
+      const edge = edges[i];
+      try {
+        const res = EdgeSchema.parse(edge);
+      }
+      catch {
+        console.log("Edge validation fail");
+        return {valid: false, error: "invalid edge"};
+      }
+    }
+    return {valid: true};
+  }
+}
+
+//simple rate limiter
+
+function rateLimiter(limit: number, interval: number) {
+  let tokens = limit;
+  let last = Date.now();
+
+  return () => {
+    const now = Date.now();
+    const elapsed = now - last;
+    if (elapsed > interval) {
+      tokens = limit;
+      last = now;
+    }
+    if (tokens > 0) {
+      tokens--;
+      return true;
+    }
+    return false;
+  };
+}
+
 
 const io = new Server(3000, {
   cors: {
@@ -24,13 +144,51 @@ const io = new Server(3000, {
   },
 });
 
+//session tracking
+io.use((socket, next) => {
+  let sesID = socket.handshake.auth.sessionId;
+  if (!sesID) {
+    sesID = uuidv4();
+  }
+
+  socket.data.sessionId = sesID;
+  socket.data.joinedAt = Date.now();
+  next();
+})
+
 
 io.on("connection", (socket) => {
   console.log("New connection:", socket.id);
 
-  socket.on("create-party", async (data) => {
+  const checkRate = rateLimiter(10, 1000);
+
+  //wrap socket listeners in rate limiter to 10 tokens / sec
+
+  function limited(event: string, handler: (...args: any[]) => void) {
+    socket.on(event, (...args) => {
+      if (!checkRate()) {
+        console.log(`Rate limit hit from ${socket.id} on ${event}`);
+        socket.emit("rate-limit", {event});
+        return;
+      }
+      handler(...args);
+    });
+  }
+
+  limited ("create-party", async (data) => {
+    //validate data from graph first
+    const verify = validateData.graphData(data.nodes, data.edges);
+    if (!verify.valid) return;
+    if (verify.error) {
+      console.log(verify.error);
+    }
+
     //create unique ID for party
     const ID = uuidv4();
+    if (socket.data.partyID) {
+      socket.emit("create-party-result", {res: "already in party"});
+      return;
+    }
     socket.join(ID);
     socket.data.partyID = ID;
 
@@ -56,7 +214,9 @@ io.on("connection", (socket) => {
     socket.emit("party-id", ID);
   })
 
-  socket.on("join-party", async (partyId) => {
+  limited("join-party", async (partyId) => {
+    const verify = validateData.partyId(partyId);
+    if (!verify.valid) return;
     try {
       //retrieve from redis
       const cachedPartyData = await redis.get(`party:${partyId}`);
@@ -114,8 +274,11 @@ io.on("connection", (socket) => {
     }
   })
 
-  socket.on("create-node", async (data: {partyID: string, x: number, y: number, id: number}) => {
+  limited ("create-node", async (data: {partyID: string, x: number, y: number, id: number}) => {
     const {partyID, x, y, id} = data;
+    const verifyCoords = validateData.coords(x, y);
+    const verifyPID = validateData.partyId(partyID);
+    if (!verifyCoords.valid || !verifyPID.valid) return;
     try {
       const cachedParty = await redis.get(`party:${partyID}`);
       if (!cachedParty) {
@@ -125,8 +288,10 @@ io.on("connection", (socket) => {
       console.log("creating node...");
 
       const pData: partyData = JSON.parse(cachedParty);
+      if (pData.nodes.length > 500) return;
 
       const newNodeID = await redis.incr(`party:${partyID}:nextNodeID`);
+      
 
       const newNode: NodeData = {
         id: newNodeID,
@@ -149,8 +314,11 @@ io.on("connection", (socket) => {
     }
   })
 
-  socket.on("node-moved", async(data) => {
+  limited ("node-moved", async(data) => {
     const {id, x, y, partyID} = data;
+    const verifyCoords = validateData.coords(x, y);
+    const verifyPID = validateData.partyId(partyID);
+    if (!verifyCoords.valid || !verifyPID.valid) return;
     try {
       const cachedParty = await redis.get(`party:${partyID}`);
       if (!cachedParty) {
@@ -173,8 +341,14 @@ io.on("connection", (socket) => {
     }
   })
 
-  socket.on("create-edge", async (data : {partyID: string, id: number, startID: number, endID: number, weight: number}) => {
+  limited ("create-edge", async (data : {partyID: string, id: number, startID: number, endID: number, weight: number}) => {
     const {partyID, id, startID, endID, weight} = data;
+    const verifyPID = validateData.partyId(partyID);
+    const v1 = validateData.ID(startID);
+    const v2 = validateData.ID(endID);
+    const validateWeight = validateData.weight(weight);
+    if (!verifyPID.valid || !v1.valid || !v2.valid || !validateWeight.valid) return;
+    if (!verifyPID.valid) return;
     try {
       const cachedParty = await redis.get(`party:${partyID}`);
       if (!cachedParty) {
@@ -183,6 +357,7 @@ io.on("connection", (socket) => {
       }
 
       const pData = JSON.parse(cachedParty);
+      if (pData.edges.length > 2000) return;
       const newEdgeID = await redis.incr(`party:${partyID}:nextEdgeID`);
       const newEdge: EdgeData = {
         id: newEdgeID,
@@ -203,8 +378,11 @@ io.on("connection", (socket) => {
   })
 
 
-  socket.on("delete-node", async (data) => {
+  limited ("delete-node", async (data) => {
     const {partyID, id} = data;
+    const verifyPID = validateData.partyId(partyID);
+    const verify = validateData.ID(id);
+    if (!verifyPID.valid || !verify.valid) return;
     try {
       const cachedParty = await redis.get(`party:${partyID}`);
       if (!cachedParty) {
@@ -226,8 +404,11 @@ io.on("connection", (socket) => {
     }
   })
 
-  socket.on("delete-edge", async(data) => {
+  limited ("delete-edge", async(data) => {
     const {partyID, id} = data;
+    const verifyPID = validateData.partyId(partyID);
+    const verify = validateData.ID(id);
+    if (!verifyPID.valid || !verify.valid) return;
     try {
       const cachedParty = await redis.get(`party:${partyID}`);
       if (!cachedParty) {
@@ -245,8 +426,12 @@ io.on("connection", (socket) => {
     }
   })
 
-  socket.on("change-weight", async(data) => {
+  limited ("change-weight", async(data) => {
     const {partyID, id, newWeight} = data;
+    const verifyPID = validateData.partyId(partyID);
+    const verify = validateData.ID(id);
+    const validateweight = validateData.weight(newWeight);
+    if (!verifyPID.valid || !verify.valid || !validateweight.valid) return;
     try {
       const cachedParty = await redis.get(`party:${partyID}`);
       if (!cachedParty) {
@@ -266,8 +451,10 @@ io.on("connection", (socket) => {
     }
   })
 
-  socket.on("clear-graph", async(data) => {
+  limited ("clear-graph", async(data) => {
     const {partyID} = data;
+    const verifyPID = validateData.partyId(partyID);
+    if (!verifyPID.valid) return;
     try {
       const cachedParty = await redis.get(`party:${partyID}`);
       if (!cachedParty) {
@@ -286,7 +473,7 @@ io.on("connection", (socket) => {
     }
   })
 
-  socket.on("clear-weights", async(data) => {
+  limited ("clear-weights", async(data) => {
     const {partyID} = data;
     try {
       const cachedParty = await redis.get(`party:${partyID}`);
@@ -304,8 +491,10 @@ io.on("connection", (socket) => {
     }
   })
 
-  socket.on("insert-graph", async(data) => {
+  limited ("insert-graph", async(data) => {
     const {partyID, newNodes, newEdges} = data;
+    const verify = validateData.graphData(newNodes, newEdges);
+    if (!verify.valid) return;
     try {
       const cachedParty = await redis.get(`party:${partyID}`);
       if (!cachedParty) {
