@@ -96,7 +96,7 @@ const mtx = new RedisMutex(redis);
 
 //some checks are redundant but ok
 const validateData = {
-  partyId: (partyId) => {
+  partyId: (partyId:any) => {
     if (!partyId || typeof partyId !== 'string') {
       return {valid: false, error: "invalid PID"};
     }
@@ -108,7 +108,7 @@ const validateData = {
     }
     return {valid: true};
   },
-  coords: (x, y) => {
+  coords: (x:any, y:any) => {
     if (typeof x !== 'number' || typeof y !== 'number') {
       return {valid: false, error: "Coords not numbers"};
     }
@@ -117,7 +117,7 @@ const validateData = {
     }
     return {valid: true};
   },
-  ID: (id) => {
+  ID: (id:any) => {
     if (typeof id !== 'number' || !Number.isInteger(id) || id < 0) {
       return {valid: false, error: "Invalid node ID"};
     }
@@ -126,7 +126,7 @@ const validateData = {
     }
     return {valid: true};
   },
-  weight: (weight) => {
+  weight: (weight:any) => {
     if (typeof weight !== 'number') {
       return {valid: false, error: "Weight must be number"}
     }
@@ -138,7 +138,7 @@ const validateData = {
     }
     return {valid: true};
   },
-  graphData: (nodes, edges) => {
+  graphData: (nodes:any, edges:any) => {
     if (!Array.isArray(nodes) || !Array.isArray(edges)) {
       return {valid: false, error: "Not arrays"};
     }
@@ -472,7 +472,7 @@ io.on("connection", (socket) => {
 
       const pData = JSON.parse(cachedParty);
       pData.nodes = pData.nodes.filter((node: NodeData) => node.id !== id);
-      pData.nodes = pData.nodes.map((node, index) => ({...node, label: index + 1}));
+      pData.nodes = pData.nodes.map((node:any, index:any) => ({...node, label: index + 1}));
       pData.edges = pData.edges.filter((edge: EdgeData) => (edge.endID !== id && edge.startID !== id));
       await redis.setex(`party:${partyID}`, 24 * 60 * 60, JSON.stringify(pData));
       io.to(partyID).emit("node-deleted", {nodeID: id});
@@ -580,7 +580,7 @@ io.on("connection", (socket) => {
         return;
       }
       const pData = JSON.parse(cachedParty);
-      pData.edges = pData.edges.map((edge) => edge ? {...edge, weight: 0} : edge);
+      pData.edges = pData.edges.map((edge:any) => edge ? {...edge, weight: 0} : edge);
       await redis.setex(`party:${partyID}`, 24 * 60 * 60, JSON.stringify(pData));
       io.to(partyID).emit("cleared-weights");
     }
@@ -642,7 +642,7 @@ io.on("connection", (socket) => {
     const cachedParty = await redis.get(`party:${partyID}`);
     if (!cachedParty) return;
     const pData = JSON.parse(cachedParty);
-    pData.members = pData.members.filter((m) => m !== socket.id);
+    pData.members = pData.members.filter((m:any) => m !== socket.id);
     pData.numConnected = (io.sockets.adapter.rooms.get(partyID)?.size || 0);
 
     await redis.setex(`party:${partyID}`, 24 * 60 * 60, JSON.stringify(pData));
