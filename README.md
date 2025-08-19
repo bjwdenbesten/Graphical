@@ -2,7 +2,7 @@
 ### Check out a demo of the web app [here](https://graphicalfrontend-production.up.railway.app/).
 **Please note that there is some latency between users while in a party.**
 
-![Graphical Preview](path/to/image.jpg "Graphical Picture")
+![Graphical Preview](images/GraphicalPreview.png "Graphical Picture")
 
 ## Overview of Build:
 * Frontend: Vite + React TS
