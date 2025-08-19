@@ -1,6 +1,6 @@
 # Graphical: A Collaborative Node CS-Graph Editor.
 ### Check out a demo of the web app [here](https://graphicalfrontend-production.up.railway.app/).
-**Please note that there is some latency between users while in a party.**
+**Please note that there may be some latency between users while in a party based on your location.**
 
 ![Graphical Preview](images/GraphicalPreview.png "Graphical Picture")
 
