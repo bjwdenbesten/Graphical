@@ -390,10 +390,15 @@ io.on("connection", (socket) => {
   })
 
   limited ("node-moved", async(data) => {
-    const {id, x, y, partyID} = data;
+    const {id, x, y, partyID, type} = data;
     const verifyCoords = validateData.coords(x, y);
     const verifyPID = validateData.partyId(partyID);
     if (!verifyCoords.valid || !verifyPID.valid) return;
+
+    if (type == "no-update-db") {
+      io.to(partyID).emit("node-move-update", {id, x, y});
+      return;
+    }
     try {
       const cachedParty = await redis.get(`party:${partyID}`);
       if (!cachedParty) {

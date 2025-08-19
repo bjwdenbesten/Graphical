@@ -188,7 +188,7 @@ const Graph = () => {
   const S_moveNode = (id: number, x: number, y: number) => {
     const now = Date.now();
     if (now - lastEmitTime > T_INTERVAL) {
-      socket.emit("node-moved", {id, x, y, partyID});
+      socket.emit("node-moved", {id, x, y, partyID, type: "no-update-db"});
       lastEmitTime = now;
     }
   }
@@ -820,7 +820,7 @@ const Graph = () => {
 
     const handleUp = () => {
       if (inParty) {
-        socket.emit("node-moved", {id: dragNodeID, x: mouseRef.current.x, y: mouseRef.current.y, partyid: partyID})
+        socket.emit("node-moved", {id: dragNodeID, x: mouseRef.current.x, y: mouseRef.current.y, partyID: partyID, type: "update-db"})
       }
       setdragNodeID(null);
     };
@@ -829,7 +829,7 @@ const Graph = () => {
     window.addEventListener("mouseup", handleUp);
 
     return () => {window.removeEventListener("mousemove", handleDrag), window.removeEventListener("mouseup", handleUp)}
-  }, [dragNodeID, overWorkspace, dragOffset])
+  }, [dragNodeID, overWorkspace, dragOffset, socket, inParty, partyID])
 
 
   //component rendering
