@@ -207,12 +207,13 @@ server.listen(port, () => {
 
 const io = new Server(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' 
-      ? (process.env.CLIENT_URL ? [process.env.CLIENT_URL] : "*")
-      : ["http://localhost:5173"],
+    origin: [
+      "https://graphicalfrontend-production.up.railway.app",
+      "http://localhost:5173" // optional for dev
+    ],
     methods: ["GET", "POST"],
     credentials: true
-  },
+  }
 });
 
 //session tracking
