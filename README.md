@@ -46,7 +46,7 @@ ___
 
 For example a graph with three nodes that looks like:
 
-![Graph Picture](path/to/image.jpg "Graph Picture")
+![Graph Picture](images/simplegraph.jpg "Graph Picture")
 
 can be inputed as following:
 ```
