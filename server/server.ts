@@ -185,6 +185,9 @@ function rateLimiter(limit: number, interval: number) {
 
 const server = createServer();
 
+const port = process.env.PORT || 3000;
+server.listen(port, () => console.log(`Server running on port ${port}`));
+
 const io = new Server(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production' 
