@@ -1,8 +1,8 @@
-# Graphical: A Simple Node-based CS-Graph Editor
+# Graphical: A Collaborative Node CS-Graph Editor.
 ### Check out a demo of the web app [here](https://graphicalfrontend-production.up.railway.app/).
 **Please note that there is some latency between users while in a party.**
 
-![Alt text](path/to/image.jpg "Graphical Picture")
+![Graphical Preview](path/to/image.jpg "Graphical Picture")
 
 ## Overview of Build:
 * Frontend: Vite + React TS
@@ -11,7 +11,7 @@
 * Basic Input Validation: Zod
 
 ## Features:
-Below is a quick summary of graphical's supported features.
+Below is a quick summary of Graphical's supported features.
 ### Graph States:
 * Undirected Graphs
 * Directed Graphs
@@ -41,9 +41,12 @@ where an **Edge** with Weight **M** is in the form:
 
 **Start Node (space)  End Node (space) M**
 
+*Note: If weights aren't provided, they will be filled in as 0*
+___
+
 For example a graph with three nodes that looks like:
 
-![Alt text](path/to/image.jpg "Graph Picture)
+![Graph Picture](path/to/image.jpg "Graph Picture")
 
 can be inputed as following:
 ```
@@ -59,7 +62,7 @@ You can start a party by clicking on the **Start Party** button in the party tab
 
 To join a party, click **Join Party** on the Main Menu and enter the party code.
 
-Within a party, all graph changes are synced between users in the same party. All visual-based options remain independent.
+Within a party, all graph changes are synced between users. However, visual options remain independent.
 
 ### Keybind Customization and Controls:
 Currently there are two keybinds that may be customized from the **Controls** tab: **Create Node** and **Component Deletion**. 
