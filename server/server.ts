@@ -19,7 +19,10 @@ type partyData = {
   created: string;
 }
 
-const redisUrl = process.env.REDIS_URL ? process.env.REDIS_URL + "?family=0" : "redis://localhost:6379";
+const redisUrl = process.env.REDIS_PUBLIC_URL;
+if (!redisUrl) {
+  throw new Error("NO PUBLIC URL :C");
+}
 const redis = new Redis(redisUrl);
 
 redis.on('error', (err) => {
