@@ -1,3 +1,5 @@
 import { io } from "socket.io-client";
 
-export const socket = io("https://graphical-production.up.railway.app/");
+const url = import.meta.env.VITE_CLIENT_URL || "http://localhost:3000";
+
+export const socket = io(url);
