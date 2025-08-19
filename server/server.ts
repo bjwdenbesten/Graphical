@@ -5,7 +5,7 @@ import { Redis } from "ioredis";
 import { z } from "zod";
 
 
-import type {NodeData, EdgeData} from "../src/types.ts";
+import type {NodeData, EdgeData} from "./types.ts";
 
 type partyData = {
   nodes: any;
