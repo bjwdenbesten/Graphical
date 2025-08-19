@@ -21,6 +21,14 @@ type partyData = {
 
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 
+redis.on('error', (err) => {
+  console.error('Redis connection error:', err);
+});
+
+redis.on('connect', () => {
+  console.log('Connected to Redis');
+});
+
 const partyIdSchema = z.uuidv4();
 
 const NodeSchema = z.object({
@@ -186,12 +194,17 @@ function rateLimiter(limit: number, interval: number) {
 const server = createServer();
 
 const port = process.env.PORT || 3000;
-server.listen(port, () => console.log(`Server running on port ${port}`));
+server.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+  console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+  console.log(`CLIENT_URL: ${process.env.CLIENT_URL}`);
+  console.log(`REDIS_URL: ${process.env.REDIS_URL ? 'Set' : 'Not set'}`);
+});
 
 const io = new Server(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production' 
-      ? (process.env.CLIENT_URL ? [process.env.CLIENT_URL] : [])
+      ? (process.env.CLIENT_URL ? [process.env.CLIENT_URL] : "*")
       : ["http://localhost:5173"],
     methods: ["GET", "POST"],
     credentials: true
