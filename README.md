@@ -5,7 +5,7 @@
 ![Graphical Preview](images/GraphicalPreview.png "Graphical Picture")
 
 ## Overview of Build:
-* Frontend: Vite + React TS
+* Frontend: Vite + React TS + Tailwind
 * Websocket Handling: Socket-io
 * Backend Cache Storage: Ioredis
 * Basic Input Validation: Zod
