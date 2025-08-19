@@ -19,7 +19,8 @@ type partyData = {
   created: string;
 }
 
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const redisUrl = process.env.REDIS_URL ? process.env.REDIS_URL + "?family=0" : "redis://localhost:6379";
+const redis = new Redis(redisUrl);
 
 redis.on('error', (err) => {
   console.error('Redis connection error:', err);
