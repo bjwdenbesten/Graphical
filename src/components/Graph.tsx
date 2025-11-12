@@ -190,13 +190,13 @@ const Graph = () => {
   let lastEmitTime = 0;
   const T_INTERVAL = 100;
 
-  const S_moveNode = (id: number, x: number, y: number) => {
-    const now = Date.now();
-    if (now - lastEmitTime > T_INTERVAL) {
-      socket.emit("node-moved", {id, x, y, partyID, type: "no-update-db"});
-      lastEmitTime = now;
-    }
-  }
+  // const S_moveNode = (id: number, x: number, y: number) => {
+  //   const now = Date.now();
+  //   if (now - lastEmitTime > T_INTERVAL) {
+  //     socket.emit("node-moved", {id, x, y, partyID, type: "no-update-db"});
+  //     lastEmitTime = now;
+  //   }
+  // }
 
   //client listeners
   useEffect(() => {
