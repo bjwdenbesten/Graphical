@@ -187,8 +187,8 @@ const Graph = () => {
     socket.emit("insert-graph", {partyID, newNodes, newEdges});
   }
 
-  let lastEmitTime = 0;
-  const T_INTERVAL = 100;
+  // let lastEmitTime = 0;
+  // const T_INTERVAL = 100;
 
   // const S_moveNode = (id: number, x: number, y: number) => {
   //   const now = Date.now();
