@@ -819,9 +819,9 @@ const Graph = () => {
           node.id === dragNodeID ? {...node, x: smallX - dragOffset.x, y: smallY - dragOffset.y} : node
         )
       );
-      if (inParty) {
-        S_moveNode(dragNodeID, smallX - dragOffset.x, smallY - dragOffset.y);
-      }
+      // if (inParty) {
+      //   S_moveNode(dragNodeID, smallX - dragOffset.x, smallY - dragOffset.y);
+      // }
     }
 
     const handleUp = () => {
