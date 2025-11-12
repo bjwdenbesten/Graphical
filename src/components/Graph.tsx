@@ -15,6 +15,9 @@ import { socket } from '../socket.ts';
 import { useLocation } from "react-router-dom";
 
 
+
+let start = 0;
+
 const groupEdges = (edges: EdgeData[]) : groupedEdge[] => {
   const map = new Map<string, EdgeData[]>();
 
@@ -146,10 +149,12 @@ const Graph = () => {
 
   const createParty = () => {
     socket.emit("create-party", {nodes, edges, nodeID: nodeID.current, edgeID: edgeID.current});
+    console.log("Hello");
     setInParty(true);
   }
 
   const S_createNode = (x: number, y: number, id: number) => {
+    start = performance.now();
     socket.emit("create-node", {partyID, x, y, id});
   }
 
@@ -199,6 +204,7 @@ const Graph = () => {
       setPartyID(data);
     })
     socket.on("node-created", (data: any) => {
+      console.log(performance.now() - start);
       const newNode = data.node;
       newNode.size = nodeSize;
       setNodes((prev) => [...prev, newNode]);

@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import { Redis } from "ioredis";
 import { z } from "zod";
 
+import "dotenv/config";
 
 import type {NodeData, EdgeData} from "./types.ts";
 
@@ -208,8 +209,8 @@ server.listen(port, () => {
 const io = new Server(server, {
   cors: {
     origin: [
-      "https://graphicalfrontend-production.up.railway.app",
-      "http://localhost:5173" // optional for dev
+      "https://graphical.up.railway.app",
+      "http://localhost:5173"
     ],
     methods: ["GET", "POST"],
     credentials: true

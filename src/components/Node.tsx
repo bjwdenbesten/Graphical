@@ -58,7 +58,7 @@ const Node = ({
           height: size,
         }}
       >
-        <span className="">{showLabel ? label : ""}</span>
+        <span className="">{showLabel ? label - 1 : ""}</span>
         <span className="text-xs text-red-400">{showID ? id : ""}</span>
       </div>
     </>
