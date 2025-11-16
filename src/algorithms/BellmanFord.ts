@@ -29,6 +29,7 @@ export function BellmanFord_main(sourceNode: number, nodeList: NodeData[], edgeL
         }
     }
 
+
     //check which nodes decrease after all iterations
     const IsNegCycle: boolean[] = Array(V + 1).fill(false);
     for (const {u, v, w} of edges) {
